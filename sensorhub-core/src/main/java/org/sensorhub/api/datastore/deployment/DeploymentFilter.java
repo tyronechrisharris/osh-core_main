@@ -34,6 +34,7 @@ import org.sensorhub.api.system.IDeploymentWithDesc;
  */
 public class DeploymentFilter extends FeatureFilterBase<IDeploymentWithDesc>
 {
+    protected DeploymentFilter parentFilter;
     protected SystemFilter systemFilter;
 
     
@@ -41,6 +42,12 @@ public class DeploymentFilter extends FeatureFilterBase<IDeploymentWithDesc>
      * this class can only be instantiated using builder
      */
     protected DeploymentFilter() {}
+    
+    
+    public DeploymentFilter getParentFilter()
+    {
+        return parentFilter;
+    }
     
     
     public SystemFilter getSystemFilter()
@@ -68,6 +75,10 @@ public class DeploymentFilter extends FeatureFilterBase<IDeploymentWithDesc>
     protected <B extends DeploymentFilterBuilder<B, DeploymentFilter>> B intersect(DeploymentFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.intersect(otherFilter, builder);
+        
+        var parentFilter = this.parentFilter != null ? this.parentFilter.intersect(otherFilter.parentFilter) : otherFilter.parentFilter;
+        if (parentFilter != null)
+            builder.withParents(parentFilter);
         
         var systemFilter = this.systemFilter != null ? this.systemFilter.intersect(otherFilter.systemFilter) : otherFilter.systemFilter;
         if (systemFilter != null)
@@ -144,6 +155,76 @@ public class DeploymentFilter extends FeatureFilterBase<IDeploymentWithDesc>
             super.copyFrom(base);
             instance.systemFilter = base.systemFilter;
             return (B)this;
+        }
+        
+        
+        /**
+         * Select only subdeployments that are part of the matching parent deployments
+         * @param filter Parent deployment filter
+         * @return This builder for chaining
+         */
+        public B withParents(DeploymentFilter filter)
+        {
+            instance.parentFilter = filter;
+            return (B)this;
+        }
+
+        
+        /**
+         * Keep only subdeployments that are part of the parent deployments.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link DeploymentFilter} builder for chaining
+         */
+        public DeploymentFilter.NestedBuilder<B> withParents()
+        {
+            return new DeploymentFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    DeploymentFilterBuilder.this.withParents(build());
+                    return (B)DeploymentFilterBuilder.this;
+                }
+            };
+        }
+        
+        
+        /**
+         * Select only subdeployments that are part of the parent deployments
+         * with specific internal IDs
+         * @param ids List of IDs of parent deployments
+         * @return This builder for chaining
+         */
+        public B withParents(BigId... ids)
+        {
+            return withParents()
+                .withInternalIDs(ids)
+                .done();
+        }
+        
+        
+        /**
+         * Select only subdeployments that are part of the parent deployments
+         * with specific internal IDs
+         * @param ids Collection of IDs of parent deployments
+         * @return This builder for chaining
+         */
+        public B withParents(Collection<BigId> ids)
+        {
+            return withParents()
+                .withInternalIDs(ids)
+                .done();
+        }
+        
+        
+        /**
+         * Select only deployments that have no parent
+         * @return This builder for chaining
+         */
+        public B withNoParent()
+        {
+            return withParents()
+                .withInternalIDs(BigId.NONE)
+                .done();
         }
         
         

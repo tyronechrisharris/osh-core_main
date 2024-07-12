@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys.deployment;
 
 import java.io.IOException;
+import java.util.Map;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -32,6 +33,7 @@ import org.sensorhub.impl.service.consys.feature.AbstractFeatureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBinding;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
+import org.sensorhub.impl.service.consys.resource.RequestContext.ResourceRef;
 
 
 public class DeploymentHandler extends AbstractFeatureHandler<IDeploymentWithDesc, DeploymentFilter, DeploymentFilter.Builder, IDeploymentStore>
@@ -69,6 +71,52 @@ public class DeploymentHandler extends AbstractFeatureHandler<IDeploymentWithDes
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
+
+
+    @Override
+    protected void buildFilter(final ResourceRef parent, final Map<String, String[]> queryParams, final DeploymentFilter.Builder builder) throws InvalidRequestException
+    {
+        super.buildFilter(parent, queryParams, builder);
+        
+        var val = getSingleParam("searchMembers", queryParams);
+        boolean searchMembers =  (val != null && !val.equalsIgnoreCase("false"));
+        boolean parentSelected = false;
+        
+        // parent ID
+        var ids = parseResourceIds("parentId", queryParams, idEncoders.getSystemIdEncoder());
+        if (ids != null && !ids.isEmpty())
+        {
+            parentSelected = true;
+            builder.withParents()
+                .withInternalIDs(ids)
+                .done();
+        }
+        
+        // parent UID
+        var uids = parseMultiValuesArg("parentUid", queryParams);
+        if (uids != null && !uids.isEmpty())
+        {
+            parentSelected = true;
+            builder.withParents()
+                .withUniqueIDs(uids)
+                .done();
+        }
+        
+        // list only top level systems by default unless specific IDs are requested
+        if (!parentSelected && !searchMembers &&
+            !queryParams.containsKey("id") && !queryParams.containsKey("uid"))
+            builder.withNoParent();
+        
+        // system UID
+        var sysUids = parseMultiValuesArg("system", queryParams);
+        if (sysUids != null && !sysUids.isEmpty())
+        {
+            builder.withSystems()
+                .withUniqueIDs(sysUids)
+                .done();
+        }
+    }
+
     
     
     @Override

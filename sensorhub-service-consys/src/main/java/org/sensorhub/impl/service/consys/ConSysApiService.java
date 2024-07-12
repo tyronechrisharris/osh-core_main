@@ -29,6 +29,7 @@ import org.sensorhub.impl.database.registry.FilteredFederatedDatabase;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.impl.service.consys.deployment.DeploymentHandler;
+import org.sensorhub.impl.service.consys.deployment.DeploymentMembersHandler;
 import org.sensorhub.impl.service.consys.feature.FoiHandler;
 import org.sensorhub.impl.service.consys.feature.FoiHistoryHandler;
 import org.sensorhub.impl.service.consys.home.CollectionHandler;
@@ -87,8 +88,9 @@ public class ConSysApiService extends AbstractHttpServiceModule<ConSysApiService
         "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/core",
         "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/system",
         "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/subsystem",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/procedure",
         "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/deployment",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/subdeployment",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/procedure",
         "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/sf",
         "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/property",
         "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/create-replace-delete",
@@ -223,6 +225,10 @@ public class ConSysApiService extends AbstractHttpServiceModule<ConSysApiService
         {
             var deplHandler = new DeploymentHandler(eventBus, db, security.deployment_permissions);
             rootHandler.addSubResource(deplHandler);
+            
+            var deplMembersHandler = new DeploymentMembersHandler(eventBus, db, security.deployment_permissions);
+            deplHandler.addSubResource(deplMembersHandler);
+            deplMembersHandler.addSubResource(deplMembersHandler);
         }
         
         // features of interest and sub-resources

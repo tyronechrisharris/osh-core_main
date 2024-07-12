@@ -26,10 +26,12 @@ import org.sensorhub.impl.service.consys.resource.RequestContext;
 
 public class DeploymentEventsHandler extends ResourceEventsHandler<SystemEvent>
 {
+    boolean onlyMembers = false;
+    
     
     protected DeploymentEventsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super("procedure", eventBus, db.getIdEncoders(), permissions);
+        super("deployment", eventBus, db.getIdEncoders(), permissions);
     }
     
 

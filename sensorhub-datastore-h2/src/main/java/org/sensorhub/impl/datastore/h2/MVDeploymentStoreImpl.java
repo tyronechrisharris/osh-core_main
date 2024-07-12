@@ -98,6 +98,30 @@ public class MVDeploymentStoreImpl extends MVBaseFeatureStoreImpl<IDeploymentWit
     {
         var resultStream = super.getIndexedStream(filter);
         
+        if (filter.getParentFilter() != null)
+        {
+            var parentIDStream = DataStoreUtils.selectFeatureIDs(this, filter.getParentFilter());
+            
+            if (resultStream == null)
+            {
+                resultStream = parentIDStream
+                    .flatMap(id -> getParentResultStream(id, filter.getValidTime()));
+            }
+            else
+            {
+                var parentIDs = parentIDStream
+                    .map(id -> id.getIdAsLong())
+                    .collect(Collectors.toSet());
+                
+                resultStream = resultStream.filter(
+                    e -> parentIDs.contains(e.getKey().getParentID()));
+                
+                // post filter using keys valid time if needed
+                if (filter.getValidTime() != null)
+                    resultStream = postFilterKeyValidTime(resultStream, filter.getValidTime());
+            }
+        }
+        
         if (filter.getSystemFilter() != null)
         {
             var sysUIDs = DataStoreUtils.selectSystemUIDs(systemStore, filter.getSystemFilter())
@@ -131,6 +155,7 @@ public class MVDeploymentStoreImpl extends MVBaseFeatureStoreImpl<IDeploymentWit
             filter.getLocationFilter() == null &&
             filter.getFullTextFilter() == null &&
             filter.getValidTime() == null &&
+            filter.getParentFilter() == null &&
             filter.getSystemFilter() == null)
         {
             return featuresIndex.sizeAsLong();

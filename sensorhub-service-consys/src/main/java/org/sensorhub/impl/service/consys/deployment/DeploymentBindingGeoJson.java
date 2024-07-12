@@ -131,6 +131,14 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDep
                         .type(ResourceFormat.HTML.getMimeType())
                         .build());
                     
+                    links.add(new ResourceLink.Builder()
+                        .rel("subdeployments")
+                        .title("List of subdeployments")
+                        .href("/" + DeploymentHandler.NAMES[0] + "/" +
+                            bean.getId() + "/" + DeploymentMembersHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_GEOJSON)
+                        .type(ResourceFormat.GEOJSON.getMimeType())
+                        .build());
+                    
                     writeLinksAsJson(writer, links);
                 }
             }
