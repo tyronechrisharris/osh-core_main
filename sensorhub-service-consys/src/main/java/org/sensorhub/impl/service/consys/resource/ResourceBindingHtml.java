@@ -597,6 +597,12 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     }
     
     
+    protected Tag<?> getLinkButton(String text, String href)
+    {
+        return a(text).withHref(getAbsoluteHref(href)).withClasses(CSS_LINK_BTN_CLASSES);
+    }
+    
+    
     protected DomContent getLinkIcon(String href, String title)
     {
         return sup(a(" ")

@@ -20,8 +20,8 @@ import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
-import org.sensorhub.impl.service.consys.system.SystemHandler;
 import j2html.tags.specialized.DivTag;
 import static j2html.TagCreator.*;
 
@@ -36,12 +36,14 @@ import static j2html.TagCreator.*;
  */
 public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDesc, IProcedureDatabase>
 {
+    final ProcedureAssocs assocs;
     final String collectionTitle;
     
     
     public ProcedureBindingHtml(RequestContext ctx, IdEncoders idEncoders, IProcedureDatabase db, boolean isSummary) throws IOException
     {
         super(ctx, idEncoders, db, isSummary, false);
+        this.assocs = new ProcedureAssocs(db, idEncoders);
         this.collectionTitle = "Datasheets and Procedures";
     }
     
@@ -71,12 +73,9 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     @Override
     protected DivTag getLinks(String resourceUrl, FeatureKey key, IProcedureWithDesc f)
     {
-        var systemsLink = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0]
-            + "?procedure=" + f.getUniqueIdentifier()
-            + "&searchMembers=true";
-        
         return div(
-            a("Implementing Systems").withHref(systemsLink).withClasses(CSS_LINK_BTN_CLASSES)
+            getLinkButton("Implementing Systems", 
+                assocs.getImplementingSystemsLink(f, ResourceFormat.HTML).getHref())
         );
     }
 }

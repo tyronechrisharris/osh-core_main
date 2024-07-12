@@ -48,10 +48,13 @@ import net.opengis.sensorml.v20.AbstractProcess;
  */
 public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProcedureWithDesc, IProcedureDatabase>
 {
+    final ProcedureAssocs assocs;
+    
     
     public ProcedureBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, IProcedureDatabase db, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, db, forReading);
+        this.assocs = new ProcedureAssocs(db, idEncoders);
     }
     
     
@@ -85,29 +88,13 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
             {
                 super.writeCustomJsonProperties(writer, bean);
                 
-                if (showLinks.get())
+                if (showLinks)
                 {
                     var links = new ArrayList<ResourceLink>();
                     
-                    links.add(new ResourceLink.Builder()
-                        .rel("canonical")
-                        .href("/" + ProcedureHandler.NAMES[0] + "/" + bean.getId())
-                        .type(ResourceFormat.JSON.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("alternate")
-                        .title("Detailed description of procedure in SensorML format")
-                        .href("/" + ProcedureHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_SMLJSON)
-                        .type(ResourceFormat.SML_JSON.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("alternate")
-                        .title("Detailed description of procedure in HTML format")
-                        .href("/" + ProcedureHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_HTML)
-                        .type(ResourceFormat.HTML.getMimeType())
-                        .build());
+                    links.add(assocs.getCanonicalLink(bean.getId()));
+                    links.add(assocs.getAlternateLink(bean.getId(), ResourceFormat.SML_JSON, "SensorML"));
+                    links.add(assocs.getAlternateLink(bean.getId(), ResourceFormat.HTML, "HTML"));
                     
                     writeLinksAsJson(writer, links);
                 }

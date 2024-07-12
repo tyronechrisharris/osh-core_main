@@ -122,6 +122,12 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigId, IComman
     @Override
     public void serialize(BigId key, ICommandStatus status, boolean showLinks, JsonWriter writer) throws IOException
     {
+        serialize(key, status, showLinks, false, writer);
+    }
+    
+
+    public void serialize(BigId key, ICommandStatus status, boolean showLinks, boolean inlineResult, JsonWriter writer) throws IOException
+    {
         var cmdId = idEncoders.getCommandIdEncoder().encodeID(status.getCommandID());
         
         writer.beginObject();

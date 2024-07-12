@@ -17,13 +17,12 @@ package org.sensorhub.impl.service.consys.property;
 import java.io.IOException;
 import java.util.HashMap;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.property.PropertyKey;
 import org.sensorhub.api.semantic.IDerivedProperty;
-import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingHtml;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
-import org.sensorhub.impl.service.consys.system.SystemHandler;
 import j2html.tags.DomContent;
 import static j2html.TagCreator.*;
 
@@ -38,13 +37,15 @@ import static j2html.TagCreator.*;
  */
 public class PropertyBindingHtml extends ResourceBindingHtml<PropertyKey, IDerivedProperty>
 {
+    final PropertyAssocs assocs;
     final boolean isSummary;
     final String collectionTitle;
     
     
-    public PropertyBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, String collectionTitle) throws IOException
+    public PropertyBindingHtml(RequestContext ctx, IdEncoders idEncoders, IProcedureDatabase db, boolean isSummary, String collectionTitle) throws IOException
     {
         super(ctx, idEncoders);
+        this.assocs = new PropertyAssocs(db, idEncoders);
         this.isSummary = isSummary;
         this.collectionTitle = collectionTitle;
     }
@@ -77,10 +78,6 @@ public class PropertyBindingHtml extends ResourceBindingHtml<PropertyKey, IDeriv
         var propId = idEncoders.getPropertyIdEncoder().encodeID(key.getInternalID());
         var propUrl = ctx.getApiRootURL() + "/" + PropertyHandler.NAMES[0] + "/" + propId;
         
-        var propSearchUrl = ctx.getApiRootURL() + "/" + PropertyHandler.NAMES[0] + "?baseProperty=" + prop.getURI();
-        var procSearchUrl = ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "?observedProperty=" + prop.getURI();
-        var sysSearchUrl = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "?observedProperty=" + prop.getURI();
-        
         renderCard(
             a(prop.getName())
                 .withHref(propUrl)
@@ -107,18 +104,10 @@ public class PropertyBindingHtml extends ResourceBindingHtml<PropertyKey, IDeriv
                 ).withClass("ps-4")
             ): null,
             p(
-                a("Derived Properties")
-                    .withTitle("Properties derived from this property")
-                    .withHref(propSearchUrl)
-                    .withClasses(CSS_LINK_BTN_CLASSES),
-                a("Observing Procedures")
-                    .withTitle("Types of systems or methods that can be used to observe this property")
-                    .withHref(procSearchUrl)
-                    .withClasses(CSS_LINK_BTN_CLASSES),
-                a("Observing Systems")
-                    .withTitle("Systems that can observe this property")
-                    .withHref(sysSearchUrl)
-                    .withClasses(CSS_LINK_BTN_CLASSES)
+                getLinkButton("Derived Properties",
+                    assocs.getDerivedPropertiesLink(prop, ResourceFormat.HTML).getHref())
+                //getLinkButton("Observing Systems"),
+                //getLinkButton("Observing Procedures")
             ).withClass("mt-4")
          );
     }

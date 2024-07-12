@@ -29,14 +29,14 @@ public class ResourceFormat
     public static String SHORT_SMLXML = "sml2";
     public static String SHORT_HTML = "html";
     
-    public static ResourceFormat HTML = new ResourceFormat("text/html");
-    public static ResourceFormat JSON = new ResourceFormat("application/json");
-    public static ResourceFormat GEOJSON = new ResourceFormat(GeoJsonBindings.MIME_TYPE);
+    public static ResourceFormat HTML = new ResourceFormat("text/html", SHORT_HTML);
+    public static ResourceFormat JSON = new ResourceFormat("application/json", SHORT_JSON);
+    public static ResourceFormat GEOJSON = new ResourceFormat(GeoJsonBindings.MIME_TYPE, SHORT_GEOJSON);
     
-    public static ResourceFormat SML_JSON = new ResourceFormat("application/sml+json");
-    public static ResourceFormat SML_XML = new ResourceFormat("application/sml+xml");
+    public static ResourceFormat SML_JSON = new ResourceFormat("application/sml+json", SHORT_SMLJSON);
+    public static ResourceFormat SML_XML = new ResourceFormat("application/sml+xml", SHORT_SMLXML);
     
-    public static ResourceFormat OM_JSON = new ResourceFormat("application/om+json");
+    public static ResourceFormat OM_JSON = new ResourceFormat("application/om+json", SHORT_JSON);
     public static ResourceFormat OM_XML = new ResourceFormat("application/om+xml");
     
     public static String SWE_FORMAT_PREFIX = "application/swe+";
@@ -54,6 +54,7 @@ public class ResourceFormat
     
     
     final String mimeType;
+    final String shortName;
     
     
     public static ResourceFormat fromMimeType(String mimeType)
@@ -85,12 +86,29 @@ public class ResourceFormat
     private ResourceFormat(String mimeType)
     {
         this.mimeType = mimeType;
+        this.shortName = null;
+    }
+    
+    
+    private ResourceFormat(String mimeType, String shortName)
+    {
+        this.mimeType = mimeType;
+        this.shortName = shortName;
     }
     
     
     public String getMimeType()
     {
         return mimeType;
+    }
+    
+    
+    public String getShortName()
+    {
+        if (shortName != null)
+            return shortName;
+        else
+            return mimeType;
     }
     
     

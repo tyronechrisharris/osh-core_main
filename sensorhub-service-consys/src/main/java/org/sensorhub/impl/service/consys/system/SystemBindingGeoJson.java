@@ -24,13 +24,10 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.LinkResolver;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingGeoJson;
-import org.sensorhub.impl.service.consys.feature.FoiHandler;
-import org.sensorhub.impl.service.consys.obs.DataStreamHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.sensorml.SystemAdapter;
-import org.sensorhub.impl.service.consys.task.CommandStreamHandler;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.xlink.IXlinkReference;
@@ -52,10 +49,13 @@ import net.opengis.sensorml.v20.AbstractProcess;
  */
 public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemWithDesc, IObsSystemDatabase>
 {
+    final SystemAssocs assocs;
+    
     
     public SystemBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, db, forReading);
+        this.assocs = new SystemAssocs(db, idEncoders);
     }
     
     
@@ -100,61 +100,18 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
             {
                 super.writeCustomJsonProperties(writer, bean);
                 
-                if (showLinks.get())
+                if (showLinks)
                 {
                     var links = new ArrayList<ResourceLink>();
                     
-                    links.add(new ResourceLink.Builder()
-                        .rel("canonical")
-                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId())
-                        .type(ResourceFormat.JSON.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("alternate")
-                        .title("Detailed description of system in SensorML format")
-                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_SMLJSON)
-                        .type(ResourceFormat.SML_JSON.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("alternate")
-                        .title("Detailed description of system in HTML format")
-                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_HTML)
-                        .type(ResourceFormat.HTML.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("subsystems")
-                        .title("List of subsystems")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + SystemMembersHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_GEOJSON)
-                        .type(ResourceFormat.GEOJSON.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("datastreams")
-                        .title("List of system datastreams")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + DataStreamHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_JSON)
-                        .type(ResourceFormat.JSON.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("controlstreams")
-                        .title("List of system controlstreams")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + CommandStreamHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_JSON)
-                        .type(ResourceFormat.JSON.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("samplingFeatures")
-                        .title("List of system sampling features")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + FoiHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_GEOJSON)
-                        .type(ResourceFormat.JSON.getMimeType())
-                        .build());
+                    links.add(assocs.getCanonicalLink(bean.getId()));
+                    links.add(assocs.getAlternateLink(bean.getId(), ResourceFormat.SML_JSON, "SensorML"));
+                    links.add(assocs.getAlternateLink(bean.getId(), ResourceFormat.HTML, "HTML"));
+                    assocs.getParentLink(bean.getId(), ResourceFormat.GEOJSON).ifPresent(links::add);
+                    assocs.getSubsystemsLink(bean.getId(), ResourceFormat.GEOJSON).ifPresent(links::add);
+                    assocs.getSamplingFeaturesLink(bean.getId(), ResourceFormat.GEOJSON).ifPresent(links::add);
+                    assocs.getDataStreamsLink(bean.getId(), ResourceFormat.JSON).ifPresent(links::add);
+                    assocs.getControlStreamsLink(bean.getId(), ResourceFormat.JSON).ifPresent(links::add);
                     
                     writeLinksAsJson(writer, links);
                 }

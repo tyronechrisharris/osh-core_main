@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -51,7 +50,7 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature, DB exten
 {
     protected final DB db;
     protected GeoJsonBindings geoJsonBindings;
-    protected AtomicBoolean showLinks = new AtomicBoolean();
+    protected boolean showLinks;
     
     
     public AbstractFeatureBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, DB db, boolean forReading) throws IOException
@@ -96,7 +95,7 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature, DB exten
         try
         {
             var f = getFeatureWithId(key, res);
-            this.showLinks.set(showLinks);
+            this.showLinks = showLinks;
             geoJsonBindings.writeFeature(writer, f);
             writer.flush();
         }

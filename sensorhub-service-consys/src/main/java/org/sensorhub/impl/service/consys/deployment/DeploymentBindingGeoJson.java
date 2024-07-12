@@ -49,10 +49,13 @@ import net.opengis.sensorml.v20.Deployment;
  */
 public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDeploymentWithDesc, IObsSystemDatabase>
 {
+    final DeploymentAssocs assocs;
+    
     
     public DeploymentBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, db, forReading);
+        this.assocs = new DeploymentAssocs(db, idEncoders);
     }
     
     
@@ -106,38 +109,15 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDep
             {
                 super.writeCustomJsonProperties(writer, bean);
                 
-                if (showLinks.get())
+                if (showLinks)
                 {
                     var links = new ArrayList<ResourceLink>();
                     
-                    links.add(new ResourceLink.Builder()
-                        .rel("canonical")
-                        .href("/" + DeploymentHandler.NAMES[0] +
-                              "/" + bean.getId())
-                        .type(ResourceFormat.JSON.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("alternate")
-                        .title("Detailed description of deployment in SensorML format")
-                        .href("/" + DeploymentHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_SMLJSON)
-                        .type(ResourceFormat.SML_JSON.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("alternate")
-                        .title("Detailed description of deployment in HTML format")
-                        .href("/" + DeploymentHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_HTML)
-                        .type(ResourceFormat.HTML.getMimeType())
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("subdeployments")
-                        .title("List of subdeployments")
-                        .href("/" + DeploymentHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + DeploymentMembersHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_GEOJSON)
-                        .type(ResourceFormat.GEOJSON.getMimeType())
-                        .build());
+                    links.add(assocs.getCanonicalLink(bean.getId()));
+                    links.add(assocs.getAlternateLink(bean.getId(), ResourceFormat.SML_JSON, "SensorML"));
+                    links.add(assocs.getAlternateLink(bean.getId(), ResourceFormat.HTML, "HTML"));
+                    assocs.getParentLink(bean.getId(), ResourceFormat.GEOJSON).ifPresent(links::add);
+                    assocs.getSubdeploymentsLink(bean.getId(), ResourceFormat.GEOJSON).ifPresent(links::add);
                     
                     writeLinksAsJson(writer, links);
                 }

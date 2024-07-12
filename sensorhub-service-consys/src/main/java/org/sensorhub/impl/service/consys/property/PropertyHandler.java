@@ -55,13 +55,13 @@ public class PropertyHandler extends ResourceHandler<PropertyKey, IDerivedProper
     {
         var format = ctx.getFormat();
         
-        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+        if (format.equals(ResourceFormat.HTML) || (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest()))
         {
             var title = "All Derived properties";
-            return new PropertyBindingHtml(ctx, idEncoders, true, title);
+            return new PropertyBindingHtml(ctx, idEncoders, db, true, title);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            return new PropertyBindingJson(ctx, idEncoders, forReading);
+            return new PropertyBindingJson(ctx, idEncoders, db, forReading);
         else if (format.getMimeType().equals("text/turtle"))
             return new PropertyBindingTurtle(ctx, idEncoders, forReading);
         else

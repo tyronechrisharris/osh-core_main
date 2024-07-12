@@ -59,6 +59,7 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     protected final JsonReader reader;
     protected final JsonWriter writer;
     protected final GeoJsonBindings geojsonBindings;
+    protected boolean isCollection;
     
     
     protected ResourceBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
@@ -148,11 +149,25 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     }
     
     
+    @Override
+    public void startCollection() throws IOException
+    {
+        isCollection = true;
+        startJsonCollection(writer);
+    }
+    
+    
     protected void startJsonCollection(JsonWriter writer) throws IOException
     {
         writer.beginObject();
         writer.name(getItemsPropertyName());
         writer.beginArray();
+    }
+    
+    
+    protected String getItemsPropertyName()
+    {
+        return "items";
     }
     
     
@@ -171,7 +186,10 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
         {
             writer.name("links").beginArray();
             for (var l: links)
-                writeLink(writer, l);
+            {
+                if (l != null)
+                    writeLink(writer, l);
+            }
             writer.endArray();
         }
     }
@@ -231,11 +249,5 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     {
         var link = XlinkUtils.readLink(reader, new ExternalLink());
         return new FeatureLink(link);
-    }
-    
-    
-    protected String getItemsPropertyName()
-    {
-        return "items";
     }
 }

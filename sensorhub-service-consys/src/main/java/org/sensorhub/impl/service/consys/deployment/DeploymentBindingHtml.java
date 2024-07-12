@@ -14,17 +14,15 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.deployment;
 
-import static j2html.TagCreator.a;
 import static j2html.TagCreator.div;
-import static j2html.TagCreator.each;
 import static j2html.TagCreator.iff;
 import java.io.IOException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IObsSystemDatabase;
-import org.sensorhub.api.datastore.deployment.DeploymentFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.system.IDeploymentWithDesc;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
 import j2html.tags.specialized.DivTag;
 
@@ -39,12 +37,14 @@ import j2html.tags.specialized.DivTag;
  */
 public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IDeploymentWithDesc, IObsSystemDatabase>
 {
+    final DeploymentAssocs assocs;
     final String collectionTitle;
     
     
     public DeploymentBindingHtml(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean isSummary) throws IOException
     {
         super(ctx, idEncoders, db, isSummary, true);
+        this.assocs = new DeploymentAssocs(db, idEncoders);
         this.collectionTitle = "System Deployments";
     }
     
@@ -74,51 +74,13 @@ public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IDeploymentWith
     @Override
     protected DivTag getLinks(String resourceUrl, FeatureKey key, IDeploymentWithDesc f)
     {
-        // try to get parent deployment
-        String parentDeplUrl = null;
-        var parentDeplId = db.getDeploymentStore().getParent(key.getInternalID());
-        if (parentDeplId != null)
-        {
-            var deplId = idEncoders.getDeploymentIdEncoder().encodeID(parentDeplId);
-            parentDeplUrl = ctx.getApiRootURL() + "/" + DeploymentHandler.NAMES[0] + "/" + deplId;
-        }
-        
-        var hasSubDepl = db.getDeploymentStore().countMatchingEntries(new DeploymentFilter.Builder()
-            .withParents(key.getInternalID())
-            .withLimit(1)
-            .build()) > 0;
-            
-//        var hasFois = db.getDeploymentStore().countMatchingEntries(new FoiFilter.Builder()
-//            .withParents()
-//                .withInternalIDs(key.getInternalID())
-//                .includeMembers(true)
-//                .done()
-//            .includeMembers(true)
-//            //.withCurrentVersion()
-//            .withLimit(1)
-//            .build()) > 0;
-//            
-//        var hasDataStreams = db.getDataStreamStore().countMatchingEntries(new DataStreamFilter.Builder()
-//            .withSystems()
-//                .withInternalIDs(key.getInternalID())
-//                .includeMembers(true)
-//                .done()
-//            //.withCurrentVersion()
-//            .withLimit(1)
-//            .build()) > 0;
+        var deplId = idEncoders.getDeploymentIdEncoder().encodeID(key.getInternalID());
         
         return div(
-            //a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES),
-            !isHistory ? each(
-                iff(parentDeplUrl != null,
-                    a("Parent Deployment").withHref(parentDeplUrl).withClasses(CSS_LINK_BTN_CLASSES)),
-                iff(hasSubDepl,
-                    a("Subdeployments").withHref(resourceUrl + "/" + DeploymentMembersHandler.NAMES[0]).withClasses(CSS_LINK_BTN_CLASSES))
-//                iff(hasFois,
-//                    a("Sampling Features").withHref(resourceUrl + "/" + FoiHandler.NAMES[0]).withClasses(CSS_LINK_BTN_CLASSES)),
-//                iff(hasDataStreams,
-//                    a("Datastreams").withHref(resourceUrl + "/" + DataStreamHandler.NAMES[0]).withClasses(CSS_LINK_BTN_CLASSES)),
-            ) : null
+            iff(assocs.getParentLink(deplId, ResourceFormat.HTML),
+                link -> getLinkButton("Parent Deployment", link.getHref())),
+            iff(assocs.getSubdeploymentsLink(deplId, ResourceFormat.HTML),
+                link -> getLinkButton("Subdeployments", link.getHref()))
         );
     }
 }

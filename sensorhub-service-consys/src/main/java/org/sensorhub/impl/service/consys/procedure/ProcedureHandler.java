@@ -36,7 +36,6 @@ import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 
 public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
 {
-    public static final int EXTERNAL_ID_SEED = 342178536;
     public static final String[] NAMES = { "procedures" };
     
     final IEventBus eventBus;

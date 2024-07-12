@@ -42,8 +42,7 @@ import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 
 public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICommandStreamInfo, CommandStreamFilter, CommandStreamFilter.Builder, ICommandStreamStore>
 {
-    public static final int EXTERNAL_ID_SEED = 34945557;
-    public static final String[] NAMES = { "controls" };
+    public static final String[] NAMES = { "controlstreams" };
     
     final IObsSystemDatabase db;
     final IEventBus eventBus;
@@ -68,13 +67,13 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     {
         var format = ctx.getFormat();
         
-        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+        if (format.equals(ResourceFormat.HTML) || (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest()))
         {
             var title = ctx.getParentID() != null ? "Control channels of {}" : "All Controls";
-            return new CommandStreamBindingHtml(ctx, idEncoders, true, title, db);
+            return new CommandStreamBindingHtml(ctx, idEncoders, db, true, title);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            return new CommandStreamBindingJson(ctx, idEncoders, forReading);
+            return new CommandStreamBindingJson(ctx, idEncoders, db, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

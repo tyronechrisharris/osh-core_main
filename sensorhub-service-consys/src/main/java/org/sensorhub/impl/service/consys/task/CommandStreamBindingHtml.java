@@ -22,6 +22,7 @@ import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.impl.service.consys.SWECommonUtils;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingHtml;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
 import com.google.common.collect.ImmutableList;
 import static j2html.TagCreator.*;
@@ -37,13 +38,16 @@ import static j2html.TagCreator.*;
  */
 public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamKey, ICommandStreamInfo>
 {
+    final CommandStreamAssocs assocs;
     final boolean isSummary;
     final String collectionTitle;
     
     
-    public CommandStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, String collectionTitle, IObsSystemDatabase db) throws IOException
+    public CommandStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean isSummary, String collectionTitle) throws IOException
     {
         super(ctx, idEncoders);
+        
+        this.assocs = new CommandStreamAssocs(db, idEncoders);
         this.isSummary = isSummary;
         
         if (ctx.getParentID() != null)
@@ -60,6 +64,7 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
     public CommandStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders) throws IOException
     {
         super(ctx, idEncoders);
+        this.assocs = null;
         this.isSummary = false;
         this.collectionTitle = null;
     }
@@ -138,13 +143,15 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
                     ).withClass("ps-4")
                 ).withClass("mb-2")
             ),
+            
             p(
                 iff(isCollection,
-                    a("Details").withHref(dsUrl).withClasses(CSS_LINK_BTN_CLASSES)
+                    getLinkButton("Details", assocs.getCanonicalLink(dsId).getHref())
                 ),
-                a("Schema").withHref(dsUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
-                a("Commands").withHref(dsUrl + "/commands").withClasses(CSS_LINK_BTN_CLASSES),
-                a("Status").withHref(dsUrl + "/status").withClasses(CSS_LINK_BTN_CLASSES)
+                getLinkButton("Parent System", assocs.getParentLink(dsInfo, ResourceFormat.HTML).getHref()),
+                getLinkButton("Commands", assocs.getCommandsLink(dsId, ResourceFormat.JSON).getHref()),
+                getLinkButton("Status", assocs.getStatusLink(dsId, ResourceFormat.JSON).getHref()),
+                getLinkButton("Schema", dsUrl + "/schema")
             ).withClass("mt-4"));
     }
     

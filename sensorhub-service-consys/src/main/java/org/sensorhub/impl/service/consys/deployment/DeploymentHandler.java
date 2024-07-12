@@ -38,7 +38,6 @@ import org.sensorhub.impl.service.consys.resource.RequestContext.ResourceRef;
 
 public class DeploymentHandler extends AbstractFeatureHandler<IDeploymentWithDesc, DeploymentFilter, DeploymentFilter.Builder, IDeploymentStore>
 {
-    public static final int EXTERNAL_ID_SEED = 42671358;
     public static final String[] NAMES = { "deployments" };
     
     final IEventBus eventBus;

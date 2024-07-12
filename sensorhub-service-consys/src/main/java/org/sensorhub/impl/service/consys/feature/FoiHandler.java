@@ -57,7 +57,7 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     {
         var format = ctx.getFormat();
         
-        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+        if (format.equals(ResourceFormat.HTML) || (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest()))
             return new FoiBindingHtml(ctx, idEncoders, db, true);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
         {

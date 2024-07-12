@@ -18,17 +18,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.property.PropertyKey;
 import org.sensorhub.api.semantic.IDerivedProperty;
 import org.sensorhub.impl.semantic.DerivedProperty;
 import org.sensorhub.impl.service.consys.InvalidRequestException;
 import org.sensorhub.impl.service.consys.ResourceParseException;
-import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
-import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.swe.SWEJsonBindings;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -37,13 +36,15 @@ import com.google.gson.stream.JsonWriter;
 
 public class PropertyBindingJson extends ResourceBindingJson<PropertyKey, IDerivedProperty>
 {
+    final PropertyAssocs assocs;
     final String rootURL;
     final SWEJsonBindings sweBindings;
     
     
-    public PropertyBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public PropertyBindingJson(RequestContext ctx, IdEncoders idEncoders, IProcedureDatabase db, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
+        this.assocs = new PropertyAssocs(db, idEncoders);
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEJsonBindings();
     }
@@ -149,39 +150,9 @@ public class PropertyBindingJson extends ResourceBindingJson<PropertyKey, IDeriv
         if (showLinks)
         {
             var links = new ArrayList<ResourceLink>();
-            
-            links.add(new ResourceLink.Builder()
-                .rel("canonical")
-                .href(rootURL +
-                      "/" + PropertyHandler.NAMES[0] +
-                      "/" + propId)
-                .type(ResourceFormat.JSON.getMimeType())
-                .build());
-            
-            links.add(new ResourceLink.Builder()
-                .rel("derived_properties")
-                .href(rootURL +
-                      "/" + PropertyHandler.NAMES[0] +
-                      "?baseProperty=" + prop.getURI())
-                .type(ResourceFormat.JSON.getMimeType())
-                .build());
-            
-            /*links.add(new ResourceLink.Builder()
-                .rel("systems")
-                .title("Linked systems")
-                .href(rootURL +
-                      "/" + SystemHandler.NAMES[0] +
-                      "?observedProperty=" + prop.getURI())
-                .build());
-            
-            links.add(new ResourceLink.Builder()
-                .rel("procedures")
-                .title("Linked procedures")
-                .href(rootURL +
-                      "/" + ProcedureHandler.NAMES[0] +
-                      "?observedProperty=" + prop.getURI())
-                .build());*/
-            
+            links.add(assocs.getCanonicalLink(propId));
+            links.add(assocs.getAlternateLink(propId, ResourceFormat.HTML, "HTML"));
+            links.add(assocs.getDerivedPropertiesLink(prop, ResourceFormat.JSON));
             writeLinksAsJson(writer, links);
         }
         

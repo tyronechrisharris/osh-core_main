@@ -20,6 +20,7 @@ import java.util.Collection;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.impl.service.consys.InvalidRequestException;
 import org.sensorhub.impl.service.consys.ResourceParseException;
@@ -39,16 +40,18 @@ import com.google.gson.stream.JsonWriter;
 
 public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamKey, ICommandStreamInfo>
 {
-    String rootURL;
-    SWEStaxBindings sweBindings;
+    final CommandStreamAssocs assocs;
+    final String rootURL;
+    final SWEStaxBindings sweBindings;
     SWEJsonStreamReader sweReader;
     SWEJsonStreamWriter sweWriter;
     
     
-    public CommandStreamBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public CommandStreamBindingJson(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         
+        this.assocs = new CommandStreamAssocs(db, idEncoders);
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
         
@@ -231,35 +234,14 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         writer.value(ResourceFormat.SWE_BINARY.getMimeType());
         writer.endArray();
         
+        // links
         if (showLinks)
         {
             var links = new ArrayList<ResourceLink>();
-            
-            links.add(new ResourceLink.Builder()
-                .rel("canonical")
-                .href(rootURL +
-                      "/" + CommandStreamHandler.NAMES[0] +
-                      "/" + dsId)
-                .type(ResourceFormat.JSON.getMimeType())
-                .build());
-            
-            links.add(new ResourceLink.Builder()
-                .rel("system")
-                .title("Parent system")
-                .href(rootURL +
-                      "/" + SystemHandler.NAMES[0] +
-                      "/" + sysId)
-                .build());
-            
-            links.add(new ResourceLink.Builder()
-                .rel("commands")
-                .title("Collection of commands")
-                .href(rootURL +
-                      "/" + CommandStreamHandler.NAMES[0] +
-                      "/" + dsId +
-                      "/" + CommandHandler.NAMES[0])
-                .build());
-            
+            links.add(assocs.getCanonicalLink(dsId));
+            links.add(assocs.getAlternateLink(dsId, ResourceFormat.HTML, "HTML"));
+            links.add(assocs.getParentLink(csInfo, ResourceFormat.JSON));
+            links.add(assocs.getCommandsLink(dsId, ResourceFormat.JSON));
             writeLinksAsJson(writer, links);
         }
         

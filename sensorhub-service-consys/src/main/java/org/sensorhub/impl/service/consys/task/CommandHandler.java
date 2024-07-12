@@ -60,7 +60,6 @@ import org.vast.util.Asserts;
 
 public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, CommandFilter, ICommandStore>
 {
-    public static final int EXTERNAL_ID_SEED = 71145893;
     public static final String[] NAMES = { "commands" };
     
     final IEventBus eventBus;

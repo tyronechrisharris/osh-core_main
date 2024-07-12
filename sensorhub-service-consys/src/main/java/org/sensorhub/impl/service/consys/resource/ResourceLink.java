@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.resource;
 
+import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 
 
@@ -25,16 +26,10 @@ public class ResourceLink
     public final static String REL_ITEMS = "items";
     public final static String REL_COLLECTION = "collection";
     
-    String type;
     String rel;
     String title;
     String href;
-    
-
-    public String getType()
-    {
-        return type;
-    }
+    String type;
 
 
     public String getRel()
@@ -54,14 +49,20 @@ public class ResourceLink
         return href;
     }
     
+
+    public String getType()
+    {
+        return type;
+    }
     
-    public ResourceLink withFormat(String formatName, String mimeType)
+    
+    public ResourceLink withFormat(String formatName, ResourceFormat format)
     {
         var newLink = new ResourceLink();
         newLink.rel = this.rel;
-        newLink.title = this.title + " as " + formatName;
-        newLink.type = mimeType;
-        newLink.href = this.href + (this.href.contains("?") ? "&" : "?") + "f=" + mimeType;
+        newLink.title = this.title + " in " + formatName + " format";
+        newLink.href = this.href + (this.href.contains("?") ? "&" : "?") + "f=" + format.getShortName();
+        newLink.type = format.getMimeType();
         return newLink;
     }
     
@@ -85,18 +86,21 @@ public class ResourceLink
     
     public static class Builder extends BaseBuilder<ResourceLink>
     {
+        ResourceFormat format;
+        
         public Builder()
         {
             this.instance = new ResourceLink();
         }
         
-        
-        public Builder type(String type)
+        public Builder copyFrom(ResourceLink other)
         {
-            instance.type = type;
+            instance.rel = other.rel;
+            instance.href = other.href;
+            instance.type = other.type;
+            instance.title = other.title;
             return this;
         }
-        
         
         public Builder rel(String rel)
         {
@@ -104,18 +108,40 @@ public class ResourceLink
             return this;
         }
         
-        
         public Builder title(String title)
         {
             instance.title = title;
             return this;
         }
         
-        
         public Builder href(String href)
         {
             instance.href = href;
             return this;
+        }
+        
+        public Builder type(String type)
+        {
+            instance.type = type;
+            return this;
+        }
+        
+        public Builder withFormat(ResourceFormat format)
+        {
+            this.format = Asserts.checkNotNull(format, ResourceFormat.class);
+            return this;
+        }
+        
+        @Override
+        public ResourceLink build()
+        {
+            if (format != null && instance.href != null)
+            {
+                var hasQuery = instance.href.contains("?");
+                instance.href = instance.href + (hasQuery ? "&" : "?") + "f=" + format.getShortName();
+                instance.type = format.getMimeType();
+            }
+            return super.build();
         }
     }
 }

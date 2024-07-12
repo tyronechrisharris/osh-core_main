@@ -45,16 +45,18 @@ import static org.sensorhub.impl.service.consys.SWECommonUtils.OM_COMPONENTS_FIL
  */
 public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, IDataStreamInfo>
 {
+    final DataStreamAssocs assocs;
     final Map<String, CustomObsFormat> customFormats;
     final ResourceFormat obsFormat;
     final boolean isSummary;
     final String collectionTitle;
     
     
-    public DataStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, String collectionTitle, IObsSystemDatabase db, Map<String, CustomObsFormat> customFormats) throws IOException
+    public DataStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean isSummary, String collectionTitle, Map<String, CustomObsFormat> customFormats) throws IOException
     {
         super(ctx, idEncoders);
         
+        this.assocs = new DataStreamAssocs(db, idEncoders);
         this.customFormats = Asserts.checkNotNull(customFormats);
         this.obsFormat = null;
         this.isSummary = isSummary;
@@ -73,6 +75,7 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
     public DataStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders, ResourceFormat obsFormat) throws IOException
     {
         super(ctx, idEncoders);
+        this.assocs = null;
         this.obsFormat = obsFormat;
         this.customFormats = null;
         this.isSummary = false;
@@ -169,14 +172,15 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
                     ).withClass("ps-4")
                 ).withClass("mb-2")
             ),
-            iff(isCollection,
-                p(
-                    a("Details").withHref(dsUrl).withClasses(CSS_LINK_BTN_CLASSES),
-                    //a("Schema").withHref(dsUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
-                    a("Logical Schema (experimental)").withHref(dsUrl + "/schema?obsFormat=logical").withClasses(CSS_LINK_BTN_CLASSES),
-                    a("Observations").withHref(dsUrl + "/observations").withClasses(CSS_LINK_BTN_CLASSES)
-                ).withClass("mt-4")
-            )
+            
+            p(
+                iff(isCollection,
+                    getLinkButton("Details", assocs.getCanonicalLink(dsId).getHref())
+                ),
+                getLinkButton("Parent System", assocs.getParentLink(dsInfo, ResourceFormat.HTML).getHref()),
+                getLinkButton("Observations", assocs.getObservationsLink(dsId, ResourceFormat.JSON).getHref()),
+                getLinkButton("Logical Schema (experimental)", dsUrl + "/schema?obsFormat=logical")
+            ).withClass("mt-4")
          );
     }
     

@@ -21,6 +21,7 @@ import java.util.Map;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.system.SystemId;
@@ -55,12 +56,12 @@ import net.opengis.swe.v20.Vector;
 
 public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
 {
+    final DataStreamAssocs assocs;
     final String rootURL;
     final SWEStaxBindings sweBindings;
     final Map<String, CustomObsFormat> customFormats;
     SWEJsonStreamReader sweReader;
     SWEJsonStreamWriter sweWriter;
-    
     
     enum ResultType {
         measure,
@@ -73,10 +74,11 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     }
     
     
-    public DataStreamBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, Map<String, CustomObsFormat> customFormats) throws IOException
+    public DataStreamBindingJson(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean forReading, Map<String, CustomObsFormat> customFormats) throws IOException
     {
         super(ctx, idEncoders, forReading);
         
+        this.assocs = new DataStreamAssocs(db, idEncoders);
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
         this.customFormats = Asserts.checkNotNull(customFormats);
@@ -348,33 +350,10 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         if (showLinks)
         {
             var links = new ArrayList<ResourceLink>();
-            
-            links.add(new ResourceLink.Builder()
-                .rel("canonical")
-                .href(rootURL +
-                      "/" + DataStreamHandler.NAMES[0] +
-                      "/" + dsId)
-                .type(ResourceFormat.JSON.getMimeType())
-                .build());
-            
-            links.add(new ResourceLink.Builder()
-                .rel("system")
-                .title("Parent system")
-                .href(rootURL +
-                      "/" + SystemHandler.NAMES[0] +
-                      "/" + sysId)
-                .build()
-                .withFormat("GeoJSON", ResourceFormat.GEOJSON.getMimeType()));
-            
-            links.add(new ResourceLink.Builder()
-                .rel("observations")
-                .title("Collection of observations")
-                .href(rootURL +
-                      "/" + DataStreamHandler.NAMES[0] +
-                      "/" + dsId +
-                      "/" + ObsHandler.NAMES[0])
-                .build());
-            
+            links.add(assocs.getCanonicalLink(dsId));
+            links.add(assocs.getAlternateLink(dsId, ResourceFormat.HTML, "HTML"));
+            links.add(assocs.getParentLink(dsInfo, ResourceFormat.JSON));
+            links.add(assocs.getObservationsLink(dsId, ResourceFormat.JSON));
             writeLinksAsJson(writer, links);
         }
         

@@ -43,7 +43,6 @@ import org.vast.util.Asserts;
 
 public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStreamInfo, DataStreamFilter, DataStreamFilter.Builder, IDataStreamStore>
 {
-    public static final int EXTERNAL_ID_SEED = 918742953;
     public static final String[] NAMES = { "datastreams" };
     
     final IObsSystemDatabase db;
@@ -71,13 +70,13 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     {
         var format = ctx.getFormat();
         
-        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+        if (format.equals(ResourceFormat.HTML) || (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest()))
         {
             var title = ctx.getParentID() != null ? "Datastreams of {}" : "All Datastreams";
-            return new DataStreamBindingHtml(ctx, idEncoders, true, title, db, customFormats);
+            return new DataStreamBindingHtml(ctx, idEncoders, db, true, title, customFormats);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            return new DataStreamBindingJson(ctx, idEncoders, forReading, customFormats);
+            return new DataStreamBindingJson(ctx, idEncoders, db, forReading, customFormats);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

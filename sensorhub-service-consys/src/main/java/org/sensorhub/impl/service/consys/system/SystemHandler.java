@@ -46,6 +46,13 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
 {
     public static final String[] NAMES = { "systems" };
     
+    public static final String REL_PARENT = "parent";
+    public static final String REL_SUBSYSTEMS = "subsystems";
+    public static final String REL_SF = "samplingFeatures";
+    public static final String REL_DATASTREAMS = "datastreams";
+    public static final String REL_CONTROLSTREAMS = "controlstreams";
+    public static final String REL_HISTORY = "history";
+    
     final IEventBus eventBus;
     final IObsSystemDatabase db;
     final SystemDatabaseTransactionHandler transactionHandler;
@@ -80,8 +87,8 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
-    
-    
+
+
     @Override
     protected void subscribeToEvents(final RequestContext ctx) throws InvalidRequestException, IOException
     {
