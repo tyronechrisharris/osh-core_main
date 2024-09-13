@@ -80,21 +80,27 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
         {
             throw new DataStoreException("Cannot instantiate underlying database " + config.dbConfig.moduleClass, e);
         }
+
+        if(!config.autoPurgeConfig.isEmpty())
+            autoPurgeTimer = new Timer();
         
         // start auto-purge timer thread if policy is specified and enabled
-        if (config.autoPurgeConfig != null && config.autoPurgeConfig.enabled)
+        for(var autoPurgeConfig : config.autoPurgeConfig)
         {
-            final IObsSystemDbAutoPurgePolicy policy = config.autoPurgeConfig.getPolicy();
-            autoPurgeTimer = new Timer();
-            TimerTask task = new TimerTask() {
-                public void run()
-                {
-                    if (!db.isReadOnly())
-                        policy.trimStorage(db, logger);
-                }
-            };
-            
-            autoPurgeTimer.schedule(task, 0, (long)(config.autoPurgeConfig.purgePeriod*1000));
+            if (autoPurgeConfig != null && autoPurgeConfig.enabled)
+            {
+                var uids = Collections.unmodifiableCollection(autoPurgeConfig.systemUIDs);
+                final IObsSystemDbAutoPurgePolicy policy = autoPurgeConfig.getPolicy();
+                TimerTask task = new TimerTask() {
+                    public void run()
+                    {
+                        if (!db.isReadOnly())
+                            policy.trimStorage(db, logger, uids);
+                    }
+                };
+
+                autoPurgeTimer.schedule(task, 0, (long)(autoPurgeConfig.purgePeriod*1000));
+            }
         }
     }
     
