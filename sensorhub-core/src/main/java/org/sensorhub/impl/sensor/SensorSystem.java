@@ -57,8 +57,8 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
     private static final String URN_PREFIX = "urn:";
     
     Collection<IDataProducerModule<?>> subsystems = new ArrayList<>();
-    
-    
+
+
     @Override
     protected void doInit() throws SensorHubException
     {
@@ -80,16 +80,13 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
             }
         }
         
-        // load and init all subsystem modules
-        subsystems.clear();
-        for (SystemMember member: config.subsystems)
+        // Init all subsystem modules
+        for (var module: subsystems)
         {
-            var module = (IDataProducerModule<?>)loadModule(member.config);
             if (module != null)
             {
                 try
                 {
-                    subsystems.add(module);
                     module.init();
                 }
                 catch (Exception e)
@@ -172,9 +169,22 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
     protected void handleEvent(Event e)
     {
         if (e instanceof ModuleEvent)
+        {
             eventHandler.publish(e);
+            if(((ModuleEvent) e).getType() == ModuleEvent.Type.CONFIG_CHANGED)
+            {
+                var moduleConfig = ((ModuleEvent)e).getModule().getConfiguration();
+                for(SystemMember member : config.subsystems)
+                {
+                    if(moduleConfig.id.equals(member.config.id))
+                    {
+                        member.config = moduleConfig;
+                        break;
+                    }
+                }
+            }
+        }
     }
-
 
     @Override
     protected void updateSensorDescription()
@@ -189,21 +199,25 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
 
 
     @Override
-    protected void doStart() throws SensorHubException
-    {
-        for (var member: subsystems)
-        {
-            try
+    protected void setState(ModuleState newState) {
+        super.setState(newState);
+
+        // Ensure that autoStart starts modules after Sensor System is enabled
+        if (newState == ModuleState.STARTED) {
+            for (var member: subsystems)
             {
-                if (member.getConfiguration().autoStart)
+                try
                 {
-                    member.waitForState(ModuleState.INITIALIZED, 10000);
-                    member.start();
+                    if (member.getConfiguration().autoStart)
+                    {
+                        member.waitForState(ModuleState.INITIALIZED, 10000);
+                        member.start();
+                    }
                 }
-            }
-            catch (Exception e)
-            {
-                reportError("Cannot start subsystem " + MsgUtils.moduleString(member), e);
+                catch (Exception e)
+                {
+                    reportError("Cannot start subsystem " + MsgUtils.moduleString(member), e);
+                }
             }
         }
     }
@@ -242,6 +256,19 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
         return true;
     }
 
+    @Override
+    public void setConfiguration(SensorSystemConfig config) {
+        super.setConfiguration(config);
+
+        // Load all subsystem modules from config
+        subsystems.clear();
+        for (SystemMember member : config.subsystems) {
+            var module = (IDataProducerModule<?>) loadModule(member.config);
+            if (module != null) {
+                subsystems.add(module);
+            }
+        }
+    }
 
     @Override
     public synchronized void loadState(IModuleStateManager loader) throws SensorHubException
@@ -286,14 +313,14 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
     public Map<String, ? extends IDataProducerModule<?>> getMembers()
     {
         return subsystems != null ?
-            subsystems.stream().collect(ImmutableMap.toImmutableMap(this::getMemberName, e -> e)) :
+            subsystems.stream().collect(ImmutableMap.toImmutableMap(this::getMemberId, e -> e)) :
             Collections.emptyMap();
     }
     
     
-    protected String getMemberName(IModule<?> member)
+    protected String getMemberId(IModule<?> member)
     {
-        return member.getName().toLowerCase().replaceAll("\\s+", "_");
+        return member.getLocalID();
     }
 
 }

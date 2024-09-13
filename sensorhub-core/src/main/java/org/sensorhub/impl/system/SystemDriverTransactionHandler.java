@@ -100,8 +100,7 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         {
             for (var member: ((ISystemGroupDriver<?>)driver).getMembers().values())
             {
-                if (!(member instanceof IModule<?>)) // don't register submodules as they'll register themselves
-                    doRegisterMember(member, driver.getCurrentDescription().getValidTime());
+                doRegisterMember(member, driver.getCurrentDescription().getValidTime());
             }
         }
 
@@ -188,7 +187,6 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
     {
         Asserts.checkNotNull(driver, ISystemDriver.class);
         var uid = OshAsserts.checkValidUID(driver.getUniqueIdentifier());
-        boolean isNew = false;
         
         var procWrapper = new SystemWrapper(driver.getCurrentDescription())
             .hideOutputs()
@@ -199,17 +197,23 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
             procWrapper.defaultToValidTime(validTime);
         else
             procWrapper.defaultToValidFromNow();
-        
+
         // add or update existing system entry
         var newMemberHandler = (SystemDriverTransactionHandler)addOrUpdateMember(procWrapper);
-        
+
         // replace and cleanup old handler
         var oldMemberHandler = memberHandlers.get(uid);
-        if (oldMemberHandler != null)
+        boolean isNew = oldMemberHandler == null;
+        if (!isNew)
         {
-            driver.unregisterListener(oldMemberHandler);
-            isNew = false;
+            // only allow same member driver to re-register with same UID
+            ISystemDriver registeredDriver = oldMemberHandler.driver;
+            if (registeredDriver != null && registeredDriver != driver)
+                throw new IllegalArgumentException("A subsystem with UID " + uid + " is already registered");
+
+            driver.unregisterListener(memberHandlers.get(uid));
         }
+
         memberHandlers.put(uid, newMemberHandler);
 
         // register/update driver sub-components
@@ -463,7 +467,7 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
             {
                 var driverUid = driver.getUniqueIdentifier();
                 var eventUid = ((SystemEvent) e).getSystemUID();
-                
+
                 // assign internal ID before event is dispatched
                 ((SystemEvent)e).assignSystemID(sysKey.getInternalID());
                 
