@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import java.util.Collection;
+import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -69,10 +70,17 @@ public class SmlFeatureBindingSmlXml<V extends ISmlFeature<AbstractProcess>> ext
     {
         try
         {
-            if (!xmlReader.hasNext())
-                return null;
+            // skip all events until we reach the next XML element or abort.
+            // This is needed because deserialize() is called multiple times and nextTag()
+            // breaks if there is no more non-whitespace content.
+            while (xmlReader.getEventType() != XMLStreamConstants.START_ELEMENT)
+            {                
+                if (!xmlReader.hasNext())
+                    return null;
+                else
+                    xmlReader.next();
+            }
             
-            xmlReader.nextTag();
             var sml = smlBindings.readAbstractProcess(xmlReader);
             
             @SuppressWarnings("unchecked")

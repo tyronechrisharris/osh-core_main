@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.consys.sensorml;
 
 import java.io.IOException;
 import java.util.Collection;
+import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -73,10 +74,17 @@ public class SmlProcessBindingSmlXml<V extends ISmlFeature<?>> extends ResourceB
     {
         try
         {
-            if (!xmlReader.hasNext())
-                return null;
-            
-            xmlReader.nextTag();
+            // skip all events until we reach the next XML element or abort.
+            // This is needed because deserialize() is called multiple times and nextTag()
+            // breaks if there is no more non-whitespace content.
+            while (xmlReader.getEventType() != XMLStreamConstants.START_ELEMENT)
+            {                
+                if (!xmlReader.hasNext())
+                    return null;
+                else
+                    xmlReader.next();
+            }
+                        
             var sml = smlBindings.readDescribedObject(xmlReader);
             
             if (sml instanceof Deployment)
