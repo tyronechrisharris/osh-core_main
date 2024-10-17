@@ -10,20 +10,25 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 /**
  * Various tests to ensure the functionality of the {@link ModuleUtils#expand(String)} and
  * {@link ModuleUtils#expand(String, boolean)} methods.
+ * 
+ * <p>
+ * The following environment variables must be set for all tests to succeed:<br/>
+ * - SimpleEnvironment: value2<br/>
+ * - DuplicateKey: value4<br/>
+ * </p>
  */
 public class TestVariableExpansion {
 	/**
 	 * Helper that allows us to set environment variables for testing (since there is no System.setenv).
 	 */
-	@Rule
-	public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
+    // environmentVariables.set() not working on JDK>=17 due to illegal reflective to private module
+	//@Rule
+	//public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 	
 	/**
 	 * Temporary file that is used to test the functionality of the "${file; ... }" expansion.
@@ -43,10 +48,11 @@ public class TestVariableExpansion {
 	@Before
 	public void setup() throws IOException {
 		System.setProperty("SimpleProperty", "value1");
-		environmentVariables.set("SimpleEnvironment", "value2");
-		
 		System.setProperty("DuplicateKey", "value3");
-		environmentVariables.set("DuplicateKey", "value4");
+		
+		// The following doesn't work on JDK>=17. This is now set in build.gradle instead
+        //environmentVariables.set("SimpleEnvironment", "value2");
+		//environmentVariables.set("DuplicateKey", "value4");
 		
 		tempFile = File.createTempFile("variable-expansion-test-", ".txt");
 		tempFilePath = tempFile.getAbsolutePath();
