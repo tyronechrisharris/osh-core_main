@@ -115,7 +115,7 @@ public abstract class AbstractTestApiBase
         db = (IObsSystemDatabase)moduleRegistry.loadModule(dbCfg, TIMEOUT);
         ((IModule<?>)db).waitForState(ModuleState.STARTED, TIMEOUT);
         
-        // start SensorThings service
+        // start CS API service
         ConSysApiServiceConfig swaCfg = new ConSysApiServiceConfig();
         swaCfg.databaseID = dbCfg.id;
         swaCfg.endPoint = "/api";

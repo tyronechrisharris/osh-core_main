@@ -18,7 +18,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.Authenticator;
@@ -42,11 +41,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import java.util.Objects;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import net.opengis.swe.v20.BinaryEncoding;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
@@ -61,9 +55,6 @@ import org.sensorhub.impl.service.consys.procedure.ProcedureBindingGeoJson;
 import org.sensorhub.impl.service.consys.procedure.ProcedureBindingSmlJson;
 import org.sensorhub.impl.service.consys.property.PropertyBindingJson;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.system.ISystemWithDesc;
-import org.sensorhub.impl.service.consys.ResourceParseException;
-import org.sensorhub.impl.service.consys.obs.DataStreamBindingJson;
 import org.sensorhub.impl.service.consys.obs.ObsBindingOmJson;
 import org.sensorhub.impl.service.consys.obs.ObsBindingSweCommon;
 import org.sensorhub.impl.service.consys.obs.ObsHandler;
@@ -75,6 +66,8 @@ import org.sensorhub.impl.service.consys.system.SystemBindingGeoJson;
 import org.sensorhub.impl.service.consys.system.SystemBindingSmlJson;
 import org.sensorhub.impl.service.consys.task.CommandStreamBindingJson;
 import org.sensorhub.utils.Lambdas;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import com.google.common.base.Strings;
@@ -95,6 +88,8 @@ public class ConSysApiClient
     static final String SUBSYSTEMS_COLLECTION = "subsystems";
     static final String SF_COLLECTION = "fois";
 
+    static final Logger log = LoggerFactory.getLogger(ConSysApiClient.class);
+    
     HttpClient http;
     URI endpoint;
 
@@ -255,7 +250,16 @@ public class ConSysApiClient
             try
             {
                 var ctx = new RequestContext(body);
-                var binding = new ProcedureBindingGeoJson(ctx, null, null, true);
+                
+                // use modified binding since the response contains a feature collection
+                var binding = new ProcedureBindingGeoJson(ctx, null, null, true) {
+                    public IProcedureWithDesc deserialize(JsonReader reader) throws IOException
+                    {
+                        skipToCollectionItems(reader);
+                        return super.deserialize(reader);
+                    }
+                };
+                
                 return binding.deserialize();
             }
             catch (IOException e)
@@ -353,32 +357,30 @@ public class ConSysApiClient
         });
     }
 
-    // TODO Needs to parse top feature from FeatureCollection, instead of trying to parse FeatureCollection as ISystemWithDesc
-    public CompletableFuture<ISystemWithDesc> getSystemByUid(String uid, ResourceFormat format) throws ExecutionException, InterruptedException {
-        var searchUID = sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "?uid=" + uid), format, body -> {
-            try {
+    public CompletableFuture<ISystemWithDesc> getSystemByUid(String uid, ResourceFormat format) throws ExecutionException, InterruptedException
+    {
+        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "?uid=" + uid), format, body -> {
+            try
+            {
                 var ctx = new RequestContext(body);
-
-                JsonObject bodyJson = JsonParser.parseReader(new InputStreamReader(ctx.getInputStream())).getAsJsonObject();
-                JsonArray features = bodyJson.getAsJsonArray("items");
-
-                if(features != null && !features.isEmpty()) {
-                    JsonObject firstFeature = features.get(0).getAsJsonObject();
-                    String featureID = firstFeature.get("id").getAsString();
-
-                    return featureID;
-                } else {
-                    return "";
-                }
-            } catch (IOException e) {
+                
+                // use modified binding since the response contains a feature collection
+                var binding = new SystemBindingGeoJson(ctx, null, null, true) {
+                    public ISystemWithDesc deserialize(JsonReader reader) throws IOException
+                    {
+                        skipToCollectionItems(reader);
+                        return super.deserialize(reader);
+                    }
+                };
+                
+                return binding.deserialize();
+            }
+            catch (IOException e)
+            {
                 e.printStackTrace();
                 throw new CompletionException(e);
             }
         });
-        var id = searchUID.get();
-        if (Objects.equals(id, ""))
-            return null;
-        return getSystemById(id, format);
     }
 
 
@@ -671,7 +673,12 @@ public class ConSysApiClient
     {
         return null;
     }
-
+    
+    
+    
+    /*----------------*/
+    /* Helper Methods */
+    /*----------------*/
 
     protected <T> CompletableFuture<T> sendGetRequest(URI collectionUri, ResourceFormat format, Function<InputStream, T> bodyMapper)
     {
@@ -688,7 +695,7 @@ public class ConSysApiClient
                 //var upstream = BodySubscribers.ofInputStream();
                 var upstream = BodySubscribers.ofByteArray();
                 return BodySubscribers.mapping(upstream, body -> {
-                    System.out.println(new String(body));
+                    log.debug("GET response\n{}", new String(body));
                     var is = new ByteArrayInputStream(body);
                     return bodyMapper.apply(is);
                 });
@@ -770,6 +777,22 @@ public class ConSysApiClient
                     throw new ResourceParseException(resp.body());
             }));
     }
+    
+    
+    protected void skipToCollectionItems(JsonReader reader) throws IOException
+    {
+        // skip to array of collection items
+        reader.beginObject();
+        while (reader.hasNext())
+        {
+            var name = reader.nextName();
+            if ("items".equals(name) || "features".equals(name))
+                break;
+            else
+                reader.skipValue();
+        }
+    }
+    
 
 
     /* Builder stuff */

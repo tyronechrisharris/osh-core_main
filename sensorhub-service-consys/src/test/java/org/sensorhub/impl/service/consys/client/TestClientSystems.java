@@ -14,11 +14,13 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.client;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import java.util.ArrayList;
 import java.util.Set;
 import org.junit.Test;
 import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.system.wrapper.SystemWrapper;
 import org.vast.sensorML.SMLHelper;
 import com.google.common.base.Strings;
@@ -49,6 +51,22 @@ public class TestClientSystems extends TestClientBase
     {
         addSystemBatch(5, true);
         addSystemBatch(100, true);
+    }
+    
+    
+    @Test
+    public void testAddSystemAndGetByUid() throws Exception
+    {
+        var sysNum = 15;
+        addSystem(sysNum, true);
+        
+        var sysUid = getSystemUid(sysNum);
+        var sys = ConSysApiClient
+            .newBuilder(apiRootUrl)
+            .build()
+            .getSystemByUid(sysUid, ResourceFormat.JSON).get();
+        
+        assertEquals(sysUid, sys.getUniqueIdentifier());
     }
     
     
