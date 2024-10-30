@@ -14,16 +14,19 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.client;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.helper.GeoPosHelper;
 import com.google.common.base.Strings;
@@ -72,12 +75,35 @@ public class TestClientDataStreams extends TestClientBase
     }
     
     
+    @Test
+    public void testAddDataStreamAndGetById() throws Exception
+    {
+        var sysId = systemTests.addSystem(1, true);
+        
+        var swe = new GeoPosHelper();
+        var recordStruct = swe.createLocationVectorLLA()
+            .name("pos")
+            .build();
+        
+        var dsId = addDataStream(sysId, 1, recordStruct, false);
+        
+        var client = ConSysApiClient
+            .newBuilder(apiRootUrl)
+            .build();
+        
+        var dsInfo = client.getDatastreamById(dsId, ResourceFormat.JSON, false).get();
+        
+        assertEquals(recordStruct.getName(), dsInfo.getOutputName());
+        assertEquals(sysId, BigId.toString32(dsInfo.getSystemID().getInternalID()));
+    }
+    
+    
 
     protected String addDataStream(String sysId, int num, DataComponent recordStruct, boolean checkHead) throws Exception
     {
         // insert one datastream
         var dsInfo = new DataStreamInfo.Builder()
-            .withSystem(SystemId.NO_SYSTEM_ID)
+            .withSystem(FeatureId.NULL_FEATURE)
             .withName("Test Datastream #" + num)
             .withDescription("Test datastream " + recordStruct.getName())
             .withRecordDescription(recordStruct)
@@ -110,7 +136,7 @@ public class TestClientDataStreams extends TestClientBase
             struct.setName("output" + num);
             
             var dsInfo = new DataStreamInfo.Builder()
-                .withSystem(SystemId.NO_SYSTEM_ID)
+                .withSystem(FeatureId.NULL_FEATURE)
                 .withName("Test Datastream #" + num)
                 .withDescription("Test datastream " + struct.getName())
                 .withRecordDescription(struct)

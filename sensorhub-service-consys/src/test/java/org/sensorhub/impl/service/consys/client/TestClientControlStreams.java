@@ -23,7 +23,7 @@ import org.junit.Test;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.helper.GeoPosHelper;
 import com.google.common.base.Strings;
@@ -80,7 +80,7 @@ public class TestClientControlStreams extends TestClientBase
     {
         // insert one datastream
         var dsInfo = new CommandStreamInfo.Builder()
-            .withSystem(SystemId.NO_SYSTEM_ID)
+            .withSystem(FeatureId.NULL_FEATURE)
             .withName("Test Control #" + num)
             .withDescription("Test controlstream " + recordStruct.getName())
             .withRecordDescription(recordStruct)
@@ -113,7 +113,7 @@ public class TestClientControlStreams extends TestClientBase
             struct.setName("control" + num);
             
             var dsInfo = new CommandStreamInfo.Builder()
-                .withSystem(SystemId.NO_SYSTEM_ID)
+                .withSystem(FeatureId.NULL_FEATURE)
                 .withName("Test Control #" + num)
                 .withDescription("Test controlstream " + struct.getName())
                 .withRecordDescription(struct)

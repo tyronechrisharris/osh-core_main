@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.data.TextEncodingImpl;
 import org.vast.util.IResource;
 import org.vast.util.TimeExtent;
@@ -36,7 +36,7 @@ public interface ICommandStreamInfo extends IResource
     /**
      * @return The identifier of the system that exposes this command stream
      */
-    SystemId getSystemID();
+    FeatureId getSystemID();
 
     
     /**

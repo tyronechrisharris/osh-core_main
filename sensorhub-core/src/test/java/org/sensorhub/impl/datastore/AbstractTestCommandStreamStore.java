@@ -37,7 +37,7 @@ import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEUtils;
@@ -77,7 +77,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     }
     
 
-    protected CommandStreamKey addCommandStream(SystemId sysID, DataComponent recordStruct, TimeExtent validTime) throws DataStoreException
+    protected CommandStreamKey addCommandStream(FeatureId sysID, DataComponent recordStruct, TimeExtent validTime) throws DataStoreException
     {
         var builder = new CommandStreamInfo.Builder()
             .withName(recordStruct.getName())
@@ -111,7 +111,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     }
 
 
-    protected CommandStreamKey addSimpleCommandStream(SystemId sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
+    protected CommandStreamKey addSimpleCommandStream(FeatureId sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
     {
         SWEHelper fac = new SWEHelper();
         var dataStruct = fac.createRecord()
@@ -130,13 +130,13 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     
     protected CommandStreamKey addSimpleCommandStream(BigId sysID, String outputName, TimeExtent validTime) throws DataStoreException
     {
-        return addSimpleCommandStream(new SystemId(sysID, PROC_UID_PREFIX+sysID), outputName, "command stream description", validTime);
+        return addSimpleCommandStream(new FeatureId(sysID, PROC_UID_PREFIX+sysID), outputName, "command stream description", validTime);
     }
     
     
     protected CommandStreamKey addSimpleCommandStream(BigId sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
     {
-        return addSimpleCommandStream(new SystemId(sysID, PROC_UID_PREFIX+sysID), outputName, description, validTime);
+        return addSimpleCommandStream(new FeatureId(sysID, PROC_UID_PREFIX+sysID), outputName, description, validTime);
     }
 
 

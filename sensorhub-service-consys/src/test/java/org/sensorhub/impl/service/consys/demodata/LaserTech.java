@@ -25,7 +25,7 @@ import org.isotc211.v2005.gmd.CIResponsibleParty;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
@@ -232,7 +232,7 @@ public class LaserTech
     static IDataStreamInfo createLrfDataStream(AbstractProcess sys)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Target Location")
             .withDescription("3D spherical coordinates of targer relative to LRF location")
             .withRecordEncoding(sml.newTextEncoding())

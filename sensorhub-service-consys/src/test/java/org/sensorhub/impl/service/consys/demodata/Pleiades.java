@@ -22,7 +22,7 @@ import java.util.Collection;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.ogc.gml.GMLBuilders;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.SamplingSurface;
@@ -382,7 +382,7 @@ public class Pleiades
             .build();
         
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Sensor Level Imagery")
             .withDescription("Sensor level imagery product (not projected or orthorectified)")
             .withRecordEncoding(sml.newTextEncoding())

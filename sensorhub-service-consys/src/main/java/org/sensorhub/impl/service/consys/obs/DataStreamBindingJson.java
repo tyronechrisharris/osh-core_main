@@ -24,7 +24,6 @@ import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.consys.InvalidRequestException;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.SWECommonUtils;
@@ -232,7 +231,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         var dsId = key != null ?
             idEncoders.getDataStreamIdEncoder().encodeID(key.getInternalID()) : null;
         
-        var sysId = (dsInfo.getSystemID() != null && dsInfo.getSystemID() != SystemId.NO_SYSTEM_ID) ?
+        var sysId = (dsInfo.getSystemID() != null && dsInfo.getSystemID() != FeatureId.NULL_FEATURE) ?
             idEncoders.getSystemIdEncoder().encodeID(dsInfo.getSystemID().getInternalID()) : null;
         
         writer.beginObject();

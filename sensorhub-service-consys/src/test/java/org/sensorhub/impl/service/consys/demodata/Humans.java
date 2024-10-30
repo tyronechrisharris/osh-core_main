@@ -23,7 +23,7 @@ import java.util.Collection;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
@@ -253,7 +253,7 @@ public class Humans
     static IDataStreamInfo createBirdSurveyDataStream(AbstractProcess sys)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Bird Sightings")
             .withDescription("Data recorded on 'Opportunistic animal sightings field datasheet'")
             .withRecordEncoding(sml.newTextEncoding())

@@ -23,7 +23,7 @@ import java.util.Collections;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
@@ -217,7 +217,7 @@ public class GfsModel
     static IDataStreamInfo createForecastDataStream(AbstractProcess sys)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - PGRB2 0.25deg Dataset")
             .withDescription("3D forecast product with most commonly used parameters, 0.25 degrees resolution")
             .withRecordEncoding(sml.newTextEncoding())

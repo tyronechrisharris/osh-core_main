@@ -35,7 +35,7 @@ import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.ICommandStore;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
@@ -95,7 +95,7 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
         {
             var csInfo = new CommandStreamInfo.Builder()
                 .withName(recordStruct.getName())
-                .withSystem(new SystemId(sysID, PROC_UID_PREFIX+sysID))
+                .withSystem(new FeatureId(sysID, PROC_UID_PREFIX+sysID))
                 .withRecordDescription(recordStruct)
                 .withRecordEncoding(new TextEncodingImpl())
                 .build();

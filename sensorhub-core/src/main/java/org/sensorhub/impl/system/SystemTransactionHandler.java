@@ -37,11 +37,11 @@ import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.EventUtils;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.feature.FoiAddedEvent;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.api.system.SystemAddedEvent;
 import org.sensorhub.api.system.SystemChangedEvent;
-import org.sensorhub.api.system.SystemId;
 import org.sensorhub.api.system.SystemRemovedEvent;
 import org.sensorhub.api.system.SystemDisabledEvent;
 import org.sensorhub.api.system.SystemEnabledEvent;
@@ -307,7 +307,7 @@ public class SystemTransactionHandler
         dataStruct.setName(outputName);
         var dsInfo = new DataStreamInfo.Builder()
             .withName(sysName + " - " + dsName)
-            .withSystem(SystemId.NO_SYSTEM_ID)
+            .withSystem(FeatureId.NULL_FEATURE)
             .withRecordDescription(dataStruct)
             .withRecordEncoding(dataEncoding)
             .build();
@@ -327,7 +327,7 @@ public class SystemTransactionHandler
         
         // add system ID
         dsInfo = DataStreamInfo.Builder.from(dsInfo)
-            .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
+            .withSystem(new FeatureId(sysKey.getInternalID(), sysUID))
             .build();
         
         // try to retrieve existing data stream
@@ -429,7 +429,7 @@ public class SystemTransactionHandler
         // with or without command result
         ICommandStreamInfo csInfo = new CommandStreamInfo.Builder()
             .withName(fullName)
-            .withSystem(SystemId.NO_SYSTEM_ID)
+            .withSystem(FeatureId.NULL_FEATURE)
             .withRecordDescription(dataStruct)
             .withRecordEncoding(dataEncoding)
             .withResultDescription(resultStruct)
@@ -451,7 +451,7 @@ public class SystemTransactionHandler
         
         // add system ID
         csInfo = CommandStreamInfo.Builder.from(csInfo)
-            .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
+            .withSystem(new FeatureId(sysKey.getInternalID(), sysUID))
             .build();
         
         // try to retrieve existing command stream

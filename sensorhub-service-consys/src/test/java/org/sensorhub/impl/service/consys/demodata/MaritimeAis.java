@@ -27,7 +27,7 @@ import org.jglue.fluentjson.JsonBuilderFactory;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.sensorML.SMLBuilders.PhysicalSystemBuilder;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.helper.CommonIdentifiers;
@@ -265,7 +265,7 @@ public class MaritimeAis
         var geopos = new GeoPosHelper();
         
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sysUid))
+            .withSystem(new FeatureId(BigId.NONE, sysUid))
             .withName("AIS Navigation Data")
             .withDescription("Vessel navigation data received by AIS monitoring network")
             .withRecordEncoding(sml.newTextEncoding())

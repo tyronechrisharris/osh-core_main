@@ -27,7 +27,7 @@ import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.ogc.geopose.Pose;
 import org.vast.ogc.geopose.PoseImpl.PoseBuilder;
 import org.vast.ogc.gml.IFeature;
@@ -364,7 +364,7 @@ public class Dahua
         var cameraFrameUri = sys.getUniqueIdentifier() + "#" + CAMERA_FRAME_ID;
         
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Camera Status")
             .withDescription("Video camera parameters")
             .withRecordEncoding(sml.newTextEncoding())
@@ -420,7 +420,7 @@ public class Dahua
         dataEnc.addMemberAsBlock(compressedBlock);
         
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Video Feed")
             .withDescription("Video frames acquired by the camera")
             .withRecordDescription(sml.createRecord()
@@ -443,7 +443,7 @@ public class Dahua
         var cameraFrameUri = sys.getUniqueIdentifier() + "#" + CAMERA_FRAME_ID;
         
         return new CommandStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Camera Commands")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createChoice()

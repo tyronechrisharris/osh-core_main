@@ -24,7 +24,7 @@ import org.isotc211.v2005.gmd.CIResponsibleParty;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.SamplingPoint;
 import org.vast.sensorML.SMLHelper;
@@ -386,7 +386,7 @@ public class Davis
     static IDataStreamInfo createWeatherDataStream(AbstractProcess sys)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Weather Measurements")
             .withDescription("Weather measurements aggregated from all station sensors")
             .withRecordEncoding(sml.newTextEncoding())

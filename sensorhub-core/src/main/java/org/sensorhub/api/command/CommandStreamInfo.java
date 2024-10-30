@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import org.vast.util.TimeExtent;
@@ -34,7 +34,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
 {
     protected String name;
     protected String description;
-    protected SystemId systemID;
+    protected FeatureId systemID;
     protected TimeExtent validTime;
     protected DataComponent recordStruct;
     protected DataEncoding recordEncoding;
@@ -43,7 +43,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
     
     
     @Override
-    public SystemId getSystemID()
+    public FeatureId getSystemID()
     {
         return systemID;
     }
@@ -180,7 +180,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
         }
 
 
-        public B withSystem(SystemId sysID)
+        public B withSystem(FeatureId sysID)
         {
             instance.systemID = sysID;
             return (B)this;

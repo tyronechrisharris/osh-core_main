@@ -46,7 +46,7 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
@@ -97,7 +97,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         {
             var dsInfo = new DataStreamInfo.Builder()
                 .withName(recordStruct.getName())
-                .withSystem(new SystemId(sysID, PROC_UID_PREFIX+sysID))
+                .withSystem(new FeatureId(sysID, PROC_UID_PREFIX+sysID))
                 .withRecordDescription(recordStruct)
                 .withRecordEncoding(new TextEncodingImpl())
                 .build();

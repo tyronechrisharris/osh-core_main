@@ -21,7 +21,7 @@ import org.jglue.fluentjson.JsonBuilderFactory;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.ogc.geopose.Pose;
 import org.vast.ogc.geopose.PoseImpl;
 import org.vast.ogc.gml.IFeature;
@@ -321,7 +321,7 @@ public class Saildrone
         var platformFrameUri = platform.getUniqueIdentifier() + "#" + PLATFORM_FRAME_ID;
         
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sensor.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sensor.getUniqueIdentifier()))
             .withName(platform.getName() + " - Navigation Data")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createRecord()
@@ -364,7 +364,7 @@ public class Saildrone
     static IDataStreamInfo createTempDataStream(AbstractProcess platform, AbstractProcess sensor)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sensor.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sensor.getUniqueIdentifier()))
             .withName(platform.getName() + " - Air Temperature")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createQuantity()
@@ -381,7 +381,7 @@ public class Saildrone
     static IDataStreamInfo createHumidityDataStream(AbstractProcess platform, AbstractProcess sensor)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sensor.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sensor.getUniqueIdentifier()))
             .withName(platform.getName() + " - Humidity")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createQuantity()
@@ -398,7 +398,7 @@ public class Saildrone
     static IDataStreamInfo createPressureDataStream(AbstractProcess platform, AbstractProcess sensor)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sensor.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sensor.getUniqueIdentifier()))
             .withName(platform.getName() + " - Atmospheric Pressure")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createQuantity()
@@ -415,7 +415,7 @@ public class Saildrone
     static IDataStreamInfo createWindDataStream(AbstractProcess platform, AbstractProcess sensor)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sensor.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sensor.getUniqueIdentifier()))
             .withName(platform.getName() + " - Wind")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createRecord()
@@ -443,7 +443,7 @@ public class Saildrone
     static IDataStreamInfo createCtdDataStream(AbstractProcess platform, AbstractProcess sensor)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sensor.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sensor.getUniqueIdentifier()))
             .withName(platform.getName() + " - Water Temp/Salinity")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createRecord()

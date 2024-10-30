@@ -37,7 +37,7 @@ import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEUtils;
@@ -77,7 +77,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     }
     
 
-    protected DataStreamKey addDataStream(SystemId sysID, DataComponent recordStruct, TimeExtent validTime) throws DataStoreException
+    protected DataStreamKey addDataStream(FeatureId sysID, DataComponent recordStruct, TimeExtent validTime) throws DataStoreException
     {
         var builder = new DataStreamInfo.Builder()
             .withName(recordStruct.getName())
@@ -111,7 +111,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     }
 
 
-    protected DataStreamKey addSimpleDataStream(SystemId sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
+    protected DataStreamKey addSimpleDataStream(FeatureId sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
     {
         SWEHelper fac = new SWEHelper();
         var dataStruct = fac.createRecord()
@@ -130,13 +130,13 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     
     protected DataStreamKey addSimpleDataStream(BigId sysID, String outputName, TimeExtent validTime) throws DataStoreException
     {
-        return addSimpleDataStream(new SystemId(sysID, PROC_UID_PREFIX+sysID), outputName, "datastream description", validTime);
+        return addSimpleDataStream(new FeatureId(sysID, PROC_UID_PREFIX+sysID), outputName, "datastream description", validTime);
     }
     
     
     protected DataStreamKey addSimpleDataStream(BigId sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
     {
-        return addSimpleDataStream(new SystemId(sysID, PROC_UID_PREFIX+sysID), outputName, description, validTime);
+        return addSimpleDataStream(new FeatureId(sysID, PROC_UID_PREFIX+sysID), outputName, description, validTime);
     }
 
 

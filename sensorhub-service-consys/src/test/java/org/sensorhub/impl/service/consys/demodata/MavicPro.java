@@ -26,8 +26,8 @@ import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.semantic.IDerivedProperty;
-import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.semantic.DerivedProperty;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.SamplingPoint;
@@ -568,7 +568,7 @@ public class MavicPro
         var platformFrameUri = sys.getUniqueIdentifier() + "#" + PLATFORM_FRAME_ID;
         
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Navigation Data")
             .withDescription("UAV positioning data")
             .withRecordEncoding(sml.newTextEncoding())
@@ -603,7 +603,7 @@ public class MavicPro
         var cameraFrameUri = sys.getUniqueIdentifier() + "#" + CAMERA_FRAME_ID;
         
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Camera Info")
             .withDescription("Video camera parameters")
             .withRecordEncoding(sml.newTextEncoding())
@@ -646,7 +646,7 @@ public class MavicPro
         dataEnc.addMemberAsBlock(compressedBlock);
         
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Video Feed")
             .withDescription("Video frames acquired by the on-board camera")
             .withRecordDescription(sml.createRecord()
@@ -669,7 +669,7 @@ public class MavicPro
         var platformFrameUri = sys.getUniqueIdentifier() + "#" + PLATFORM_FRAME_ID;
         
         return new CommandStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Navigation Commands")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createChoice()
@@ -706,7 +706,7 @@ public class MavicPro
         var cameraFrameUri = sys.getUniqueIdentifier() + "#" + CAMERA_FRAME_ID;
         
         return new CommandStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sys.getUniqueIdentifier()))
             .withName(sys.getName() + " - Camera Commands")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createChoice()

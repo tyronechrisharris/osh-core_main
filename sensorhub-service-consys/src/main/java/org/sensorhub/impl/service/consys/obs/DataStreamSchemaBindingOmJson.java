@@ -21,7 +21,7 @@ import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.SWECommonUtils;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
@@ -134,7 +134,7 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
         
         var dsInfo = new DataStreamInfo.Builder()
             .withName(SWECommonUtils.NO_NAME) // name will be set later
-            .withSystem(SystemId.NO_SYSTEM_ID) // System ID will be set later
+            .withSystem(FeatureId.NULL_FEATURE) // System ID will be set later
             .withRecordDescription(resultStruct)
             .withRecordEncoding(new TextEncodingImpl())
             .build();

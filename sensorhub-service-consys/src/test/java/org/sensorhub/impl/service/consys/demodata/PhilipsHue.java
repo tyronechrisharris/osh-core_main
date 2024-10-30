@@ -20,7 +20,7 @@ import java.time.ZoneOffset;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.ogc.gml.IFeature;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
@@ -169,7 +169,7 @@ public class PhilipsHue
     static IDataStreamInfo createDataStream(AbstractProcess sensor)
     {
         return new DataStreamInfo.Builder()
-            .withSystem(new SystemId(BigId.NONE, sensor.getUniqueIdentifier()))
+            .withSystem(new FeatureId(BigId.NONE, sensor.getUniqueIdentifier()))
             .withName(sensor.getName() + " - Motion Detections")
             .withRecordEncoding(sml.newTextEncoding())
             .withRecordDescription(sml.createRecord()

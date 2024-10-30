@@ -21,7 +21,7 @@ import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -126,7 +126,7 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
         
         return new CommandStreamInfo.Builder()
             .withName(SWECommonUtils.NO_NAME) // name will be set later
-            .withSystem(SystemId.NO_SYSTEM_ID) // System ID will be set later
+            .withSystem(FeatureId.NULL_FEATURE) // System ID will be set later
             .withRecordDescription(commandStruct)
             .withRecordEncoding(commandEncoding)
             .withResultDescription(resultStruct)

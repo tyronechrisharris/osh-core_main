@@ -19,7 +19,6 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.api.system.SystemId;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import org.vast.util.TimeExtent;
@@ -207,7 +206,7 @@ public class DataStreamInfo implements IDataStreamInfo
         {
             instance.name = base.getName();
             instance.description = base.getDescription();
-            instance.systemID = (SystemId)base.getSystemID();
+            instance.systemID = base.getSystemID();
             instance.recordStruct = base.getRecordStructure();
             instance.recordEncoding = base.getRecordEncoding();
             instance.validTime = base.getValidTime();
