@@ -64,8 +64,10 @@ public class MaxAgeAutoPurgePolicy implements IObsSystemDbAutoPurgePolicy
                 .withOperator(RangeOp.CONTAINS)
                 .withRange(Instant.MIN, oldestRecordTime)
                 .build())
-            .withUniqueIDs(systemUIDs)
-            .includeMembers(true)
+            .withParents(new SystemFilter.Builder()
+                .withUniqueIDs(systemUIDs)
+                .includeMembers(true)
+                .build())
             .build());
         
         long numFoisRemoved = db.getFoiStore().removeEntries(new FoiFilter.Builder()
@@ -83,9 +85,9 @@ public class MaxAgeAutoPurgePolicy implements IObsSystemDbAutoPurgePolicy
                 .withRange(Instant.MIN, oldestRecordTime)
                 .build())
             .withSystems(new SystemFilter.Builder()
-                    .withUniqueIDs(systemUIDs)
-                    .includeMembers(true)
-                    .build())
+                .withUniqueIDs(systemUIDs)
+                .includeMembers(true)
+                .build())
             .build());
         
         long numCsRemoved = db.getCommandStreamStore().removeEntries(new CommandStreamFilter.Builder()
@@ -94,9 +96,9 @@ public class MaxAgeAutoPurgePolicy implements IObsSystemDbAutoPurgePolicy
                 .withRange(Instant.MIN, oldestRecordTime)
                 .build())
             .withSystems(new SystemFilter.Builder()
-                    .withUniqueIDs(systemUIDs)
-                    .includeMembers(true)
-                    .build())
+                .withUniqueIDs(systemUIDs)
+                .includeMembers(true)
+                .build())
             .build());
         
         // for each remaining datastream, remove all obs with a timestamp older than
