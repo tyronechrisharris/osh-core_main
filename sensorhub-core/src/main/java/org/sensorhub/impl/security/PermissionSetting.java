@@ -55,10 +55,6 @@ public class PermissionSetting extends ArrayDeque<IPermission> implements IPermi
             IPermission requested = otherIt.next();
             if (!perm.implies(requested))
                 return false;
-            
-            // if permission request was only for a module root we can allow it here
-            if (!otherIt.hasNext() && requested instanceof ModulePermissions)
-                return true;
         }
         
         return true;
