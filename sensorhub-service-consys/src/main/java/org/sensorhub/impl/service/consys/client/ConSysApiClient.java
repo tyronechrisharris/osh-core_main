@@ -18,7 +18,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
@@ -61,7 +60,6 @@ import org.sensorhub.impl.service.consys.obs.ObsHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
-import org.sensorhub.impl.service.consys.stream.StreamHandler;
 import org.sensorhub.impl.service.consys.system.SystemBindingGeoJson;
 import org.sensorhub.impl.service.consys.system.SystemBindingSmlJson;
 import org.sensorhub.impl.service.consys.task.CommandStreamBindingJson;
@@ -92,19 +90,6 @@ public class ConSysApiClient
     
     HttpClient http;
     URI endpoint;
-
-
-    static class InMemoryBufferStreamHandler implements StreamHandler
-    {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-
-        public void setStartCallback(Runnable onStart) {}
-        public void setCloseCallback(Runnable onClose) {}
-        public void sendPacket() throws IOException {}
-        public void close() {}
-        public OutputStream getOutputStream() { return os; }
-        public InputStream getAsInputStream() { return new ByteArrayInputStream(os.toByteArray()); }
-    }
 
 
     protected ConSysApiClient() {}
@@ -161,7 +146,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
             
             var binding = new PropertyBindingJson(ctx, null, null, false);
@@ -170,7 +155,7 @@ public class ConSysApiClient
             return sendPostRequest(
                 endpoint.resolve(PROPERTIES_COLLECTION),
                 ResourceFormat.JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -189,7 +174,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
             
             var binding = new PropertyBindingJson(ctx, null, null, false) {
@@ -213,7 +198,7 @@ public class ConSysApiClient
             return sendBatchPostRequest(
                 endpoint.resolve(PROPERTIES_COLLECTION),
                 ResourceFormat.JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -275,7 +260,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
             
             var binding = new ProcedureBindingSmlJson(ctx, null, false);
@@ -284,7 +269,7 @@ public class ConSysApiClient
             return sendPostRequest(
                 endpoint.resolve(PROCEDURES_COLLECTION),
                 ResourceFormat.SML_JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -303,7 +288,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
             
             var binding = new ProcedureBindingSmlJson(ctx, null, false) {
@@ -327,7 +312,7 @@ public class ConSysApiClient
             return sendBatchPostRequest(
                 endpoint.resolve(PROCEDURES_COLLECTION),
                 ResourceFormat.SML_JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -388,7 +373,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
 
             var binding = new SystemBindingSmlJson(ctx, null, false);
@@ -397,7 +382,7 @@ public class ConSysApiClient
             return sendPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION),
                 ResourceFormat.SML_JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -409,7 +394,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
 
             var binding = new SystemBindingSmlJson(ctx, null, false);
@@ -418,7 +403,7 @@ public class ConSysApiClient
             return sendPutRequest(
                     endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemID),
                     ResourceFormat.SML_JSON,
-                    buffer);
+                    buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -430,7 +415,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
 
             var binding = new SystemBindingSmlJson(ctx, null, false);
@@ -439,7 +424,7 @@ public class ConSysApiClient
             return sendPostRequest(
                     endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemID + "/" + SUBSYSTEMS_COLLECTION),
                     ResourceFormat.SML_JSON,
-                    buffer);
+                    buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -457,7 +442,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
 
             var binding = new SystemBindingSmlJson(ctx, null, false) {
@@ -481,7 +466,7 @@ public class ConSysApiClient
             return sendBatchPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION),
                 ResourceFormat.SML_JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -498,7 +483,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
             
             var binding = new DataStreamBindingJson(ctx, null, null, false, Collections.emptyMap());
@@ -507,7 +492,7 @@ public class ConSysApiClient
             return sendPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemId + "/" + DATASTREAMS_COLLECTION),
                 ResourceFormat.JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -526,7 +511,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
             
             var binding = new DataStreamBindingJson(ctx, null, null, false, Collections.emptyMap()) {
@@ -550,7 +535,7 @@ public class ConSysApiClient
             return sendBatchPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemId + "/" + DATASTREAMS_COLLECTION),
                 ResourceFormat.JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -567,7 +552,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
             
             var binding = new CommandStreamBindingJson(ctx, null, null, false);
@@ -576,7 +561,7 @@ public class ConSysApiClient
             return sendPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemId + "/" + CONTROLS_COLLECTION),
                 ResourceFormat.JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -595,7 +580,7 @@ public class ConSysApiClient
     {
         try
         {
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
             
             var binding = new CommandStreamBindingJson(ctx, null, null, false) {
@@ -619,7 +604,7 @@ public class ConSysApiClient
             return sendBatchPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemId + "/" + CONTROLS_COLLECTION),
                 ResourceFormat.JSON,
-                buffer);
+                buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -639,7 +624,7 @@ public class ConSysApiClient
             ObsHandler.ObsHandlerContextData contextData = new ObsHandler.ObsHandlerContextData();
             contextData.dsInfo = dataStream;
 
-            var buffer = new InMemoryBufferStreamHandler();
+            var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
 
             if(dataStream != null && dataStream.getRecordEncoding() instanceof BinaryEncoding) {
@@ -656,7 +641,7 @@ public class ConSysApiClient
             return sendPostRequest(
                     endpoint.resolve(DATASTREAMS_COLLECTION + "/" + dataStreamId + "/" + OBSERVATIONS_COLLECTION),
                     ctx.getFormat(),
-                    buffer);
+                    buffer.toByteArray());
         }
         catch (IOException e)
         {
@@ -711,11 +696,11 @@ public class ConSysApiClient
             });
     }
 
-    protected CompletableFuture<String> sendPostRequest(URI collectionUri, ResourceFormat format, InMemoryBufferStreamHandler body)
+    protected CompletableFuture<String> sendPostRequest(URI collectionUri, ResourceFormat format, byte[] body)
     {
         var req = HttpRequest.newBuilder()
             .uri(collectionUri)
-            .POST(HttpRequest.BodyPublishers.ofInputStream(body::getAsInputStream))
+            .POST(HttpRequest.BodyPublishers.ofByteArray(body))
             .header(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType())
             .header(HttpHeaders.CONTENT_TYPE, format.getMimeType())
             .build();
@@ -734,11 +719,11 @@ public class ConSysApiClient
             });
     }
 
-    protected CompletableFuture<Integer> sendPutRequest(URI collectionUri, ResourceFormat format, InMemoryBufferStreamHandler body)
+    protected CompletableFuture<Integer> sendPutRequest(URI collectionUri, ResourceFormat format, byte[] body)
     {
         var req = HttpRequest.newBuilder()
                 .uri(collectionUri)
-                .PUT(HttpRequest.BodyPublishers.ofInputStream(() -> body.getAsInputStream()))
+                .PUT(HttpRequest.BodyPublishers.ofByteArray(body))
                 .header(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType())
                 .header(HttpHeaders.CONTENT_TYPE, format.getMimeType())
                 .build();
@@ -748,11 +733,11 @@ public class ConSysApiClient
     }
 
 
-    protected CompletableFuture<Set<String>> sendBatchPostRequest(URI collectionUri, ResourceFormat format, InMemoryBufferStreamHandler body)
+    protected CompletableFuture<Set<String>> sendBatchPostRequest(URI collectionUri, ResourceFormat format, byte[] body)
     {
         var req = HttpRequest.newBuilder()
             .uri(collectionUri)
-            .POST(HttpRequest.BodyPublishers.ofInputStream(() -> body.getAsInputStream()))
+            .POST(HttpRequest.BodyPublishers.ofByteArray(body))
             .header(HttpHeaders.CONTENT_TYPE, format.getMimeType())
             .build();
 

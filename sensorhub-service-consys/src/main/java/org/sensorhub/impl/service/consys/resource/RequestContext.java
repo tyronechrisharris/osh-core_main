@@ -43,11 +43,13 @@ import com.google.common.base.Strings;
 
 public class RequestContext
 {
+    private final boolean clientSide; // true if it' s a client side context
     private final RestApiServlet servlet;
     private final HttpServletRequest req;
     private final HttpServletResponse resp;
     private final StreamHandler streamHandler;
     private final InputStream inputStream;
+    private final OutputStream outputStream;
     private final String requestPathInfo;
     private final Deque<String> path;
     private final Map<String, String[]> queryParams;
@@ -80,14 +82,16 @@ public class RequestContext
     /*
      * Constructor for use in client POST
      */
-    public RequestContext(StreamHandler streamHandler)
+    public RequestContext(OutputStream bodyOutputStream)
     {
+        this.clientSide = true;
         this.servlet = null;
         this.req = null;
         this.resp = null;
-        this.requestPathInfo = null;
-        this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
+        this.streamHandler = null;
         this.inputStream = null;
+        this.outputStream = Asserts.checkNotNull(bodyOutputStream, StreamHandler.class);
+        this.requestPathInfo = null;
         this.path = null;
         this.queryParams = null;
     }
@@ -98,12 +102,14 @@ public class RequestContext
      */
     public RequestContext(InputStream bodyInputStream)
     {
+        this.clientSide = true;
         this.servlet = null;
         this.req = null;
         this.resp = null;
-        this.requestPathInfo = null;
         this.streamHandler = null;
         this.inputStream = Asserts.checkNotNull(bodyInputStream, InputStream.class);
+        this.outputStream = null;
+        this.requestPathInfo = null;
         this.path = null;
         this.queryParams = null;
     }
@@ -114,12 +120,14 @@ public class RequestContext
      */
     public RequestContext(RestApiServlet servlet, HttpServletRequest req, HttpServletResponse resp)
     {
+        this.clientSide = false;
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
         this.resp = Asserts.checkNotNull(resp, HttpServletResponse.class);
         this.requestPathInfo = req.getPathInfo();
         this.streamHandler = null;
         this.inputStream = null;
+        this.outputStream = null;
         this.path = splitPath(req.getPathInfo());
         this.queryParams = req.getParameterMap();
         this.contentType = req.getContentType();
@@ -131,12 +139,14 @@ public class RequestContext
      */
     public RequestContext(RestApiServlet servlet, HttpServletRequest req, HttpServletResponse resp, StreamHandler streamHandler)
     {
+        this.clientSide = false;
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
         this.resp = Asserts.checkNotNull(resp, HttpServletResponse.class);
         this.requestPathInfo = req.getPathInfo();
         this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
         this.inputStream = null;
+        this.outputStream = null;
         this.path = splitPath(req.getPathInfo());
         this.queryParams = req.getParameterMap();
         this.contentType = req.getContentType();
@@ -148,12 +158,14 @@ public class RequestContext
      */
     public RequestContext(RestApiServlet servlet, URI resourceURI, InputStream is)
     {
+        this.clientSide = false;
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = null;
         this.resp = null;
         this.requestPathInfo = null;
         this.streamHandler = null;
         this.inputStream = Asserts.checkNotNull(is, InputStream.class);
+        this.outputStream = null;
         this.path = splitPath(resourceURI.getPath());
         this.queryParams = parseQueryParams(resourceURI.getQuery());
     }
@@ -164,12 +176,14 @@ public class RequestContext
      */
     public RequestContext(RestApiServlet servlet, URI resourceURI, StreamHandler streamHandler)
     {
+        this.clientSide = false;
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = null;
         this.resp = null;
         this.requestPathInfo = null;
         this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
         this.inputStream = null;
+        this.outputStream = null;
         this.path = splitPath(resourceURI.getPath());
         this.queryParams = parseQueryParams(resourceURI.getQuery());
     }
@@ -439,6 +453,8 @@ public class RequestContext
     
     public OutputStream getOutputStream() throws IOException
     {
+        if (outputStream != null)
+            return outputStream;
         if (streamHandler != null)
             return streamHandler.getOutputStream();
         else if (resp != null)
@@ -489,6 +505,12 @@ public class RequestContext
     public RestApiSecurity getSecurityHandler()
     {
         return servlet.getSecurityHandler();
+    }
+    
+    
+    public boolean isClientSide()
+    {
+        return clientSide;
     }
     
     
