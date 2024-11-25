@@ -113,6 +113,9 @@ public class PersistentClassResolver implements ClassResolver
         if (className.startsWith("com.vividsolutions"))
             return className.replace("com.vividsolutions", "org.locationtech");
         
+        else if (className.equals("org.sensorhub.api.system.SystemId"))
+            return "org.sensorhub.api.feature.FeatureId";
+        
         return className;
     }
     
