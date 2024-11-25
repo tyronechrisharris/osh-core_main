@@ -38,6 +38,8 @@ import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.data.DataIterator;
+import org.vast.data.TextEncodingImpl;
+import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
@@ -92,6 +94,8 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     @Override
     public IDataStreamInfo deserialize(JsonReader reader) throws IOException
     {
+        boolean requireSchema = !ctx.isClientSide();
+        
         // if array, prepare to parse first element
         if (reader.peek() == JsonToken.BEGIN_ARRAY)
             reader.beginArray();
@@ -103,6 +107,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         String description = null;
         String outputName = null;
         TimeExtent validTime = null;
+        FeatureId sysRef = null;
         FeatureId deplRef = null;
         FeatureId procRef = null;
         FeatureId foiRef = null;
@@ -124,6 +129,8 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                     outputName = reader.nextString();
                 else if ("validTime".equals(prop))
                     validTime = geojsonBindings.readTimeExtent(reader);
+                else if ("system@link".equals(prop))
+                    sysRef = readFeatureRef(reader);
                 else if ("procedure@link".equals(prop))
                     procRef = readFeatureRef(reader);
                 else if ("deployment@link".equals(prop))
@@ -168,54 +175,47 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         // check that mandatory properties have been parsed
         if (outputName == null)
             throw new ResourceParseException(MISSING_PROP_ERROR_MSG + "outputName");
-        if (dsInfo == null)
+        if (requireSchema && dsInfo == null)
             throw new ResourceParseException(MISSING_PROP_ERROR_MSG + "schema");
         
-        // assign outputName to data component
-        dsInfo.getRecordStructure().setName(outputName);
-        
-        // create datastream info object
-        dsInfo = DataStreamInfo.Builder.from(dsInfo)
-            .withName(name)
-            .withDescription(description)
-            .withValidTime(validTime)
-            .withDeployment(deplRef)
-            .withProcedure(procRef)
-            .withFeatureOfInterest(foiRef)
-            .withSamplingFeature(sfRef)
-            .withPhenomenonTimeInterval(null)
-            .build();
-        
-        return dsInfo;
-    }
-    
-    
-    public void serializeCreate(IDataStreamInfo dsInfo) throws IOException
-    {
-        writer.beginObject();
-        writer.name("name").value(dsInfo.getName());
-        
-        if (dsInfo.getDescription() != null)
-            writer.name("description").value(dsInfo.getDescription());
-        
-        writer.name("outputName").value(dsInfo.getOutputName());
-        
-        if (dsInfo.getValidTime() != null)
+        if (requireSchema)
         {
-            writer.name("validTime");
-            geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
+            // assign outputName to data component
+            dsInfo.getRecordStructure().setName(outputName);
+            
+            // create datastream info object
+            dsInfo = DataStreamInfo.Builder.from(dsInfo)
+                .withSystem(sysRef != null ? sysRef : FeatureId.NULL_FEATURE)
+                .withName(name)
+                .withDescription(description)
+                .withValidTime(validTime)
+                .withDeployment(deplRef)
+                .withProcedure(procRef)
+                .withFeatureOfInterest(foiRef)
+                .withSamplingFeature(sfRef)
+                .build();
+        }
+        else
+        {
+            var resultStruct = new SWEHelper().createText()
+                .name(outputName)
+                .build();
+            
+            dsInfo = new DataStreamInfo.Builder()
+                .withSystem(sysRef != null ? sysRef : FeatureId.NULL_FEATURE)
+                .withName(name)
+                .withDescription(description)
+                .withValidTime(validTime)
+                .withDeployment(deplRef)
+                .withProcedure(procRef)
+                .withFeatureOfInterest(foiRef)
+                .withSamplingFeature(sfRef)
+                .withRecordDescription(resultStruct)
+                .withRecordEncoding(new TextEncodingImpl())
+                .build();
         }
         
-        writer.name("schema");
-        ResourceBindingJson<DataStreamKey, IDataStreamInfo> schemaBinding;
-        if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
-            schemaBinding = new DataStreamSchemaBindingSweCommon(ResourceFormat.SWE_BINARY, ctx, idEncoders, writer);
-        else
-            schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoders, writer);
-        schemaBinding.serialize(null, dsInfo, false);
-        
-        writer.endObject();
-        writer.flush();
+        return dsInfo;
     }
 
 
@@ -253,8 +253,11 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         writer.name("outputName").value(dsInfo.getOutputName());
         
-        writer.name("validTime");
-        geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
+        if (dsInfo.getValidTime() != null)
+        {
+            writer.name("validTime");
+            geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
+        }
         
         // procedure
         var procRef = dsInfo.getProcedureID();
@@ -308,7 +311,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             writer.endArray();
         }
         
-        if (expandSchema)
+        if (ctx.isClientSide() || expandSchema)
         {
             writer.name("schema");
             ResourceBindingJson<DataStreamKey, IDataStreamInfo> schemaBinding;

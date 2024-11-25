@@ -43,6 +43,7 @@ import java.util.function.Function;
 import net.opengis.swe.v20.BinaryEncoding;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
@@ -50,6 +51,7 @@ import org.sensorhub.api.semantic.IDerivedProperty;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.obs.DataStreamBindingJson;
+import org.sensorhub.impl.service.consys.obs.DataStreamSchemaBindingOmJson;
 import org.sensorhub.impl.service.consys.procedure.ProcedureBindingGeoJson;
 import org.sensorhub.impl.service.consys.procedure.ProcedureBindingSmlJson;
 import org.sensorhub.impl.service.consys.property.PropertyBindingJson;
@@ -479,6 +481,57 @@ public class ConSysApiClient
     /* Datastreams */
     /*-------------*/
 
+    public CompletableFuture<IDataStreamInfo> getDatastreamById(String id, ResourceFormat format, boolean fetchSchema)
+    {
+        var cf1 = sendGetRequest(endpoint.resolve(DATASTREAMS_COLLECTION + "/" + id), format, body -> {
+            try
+            {
+                var ctx = new RequestContext(body);
+                var binding = new DataStreamBindingJson(ctx, null, null, true, Collections.emptyMap());
+                return binding.deserialize();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+                throw new CompletionException(e);
+            }
+        });
+        
+        if (fetchSchema)
+        {
+            return cf1.thenCombine(getDatastreamSchema(id, ResourceFormat.JSON, ResourceFormat.JSON), (dsInfo, schemaInfo) -> {
+                
+                schemaInfo.getRecordStructure().setName(dsInfo.getOutputName());
+                
+                dsInfo = DataStreamInfo.Builder.from(dsInfo)
+                    .withRecordDescription(schemaInfo.getRecordStructure())
+                    .build();
+                
+                return dsInfo;
+            });
+        }
+        else
+            return cf1;
+        
+    }
+    
+    public CompletableFuture<IDataStreamInfo> getDatastreamSchema(String id, ResourceFormat obsFormat, ResourceFormat format)
+    {
+        return sendGetRequest(endpoint.resolve(DATASTREAMS_COLLECTION + "/" + id + "/schema?obsFormat="+obsFormat), format, body -> {
+            try
+            {
+                var ctx = new RequestContext(body);
+                var binding = new DataStreamSchemaBindingOmJson(ctx, null, true);
+                return binding.deserialize();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+                throw new CompletionException(e);
+            }
+        });
+    }
+
     public CompletableFuture<String> addDataStream(String systemId, IDataStreamInfo datastream)
     {
         try
@@ -487,7 +540,7 @@ public class ConSysApiClient
             var ctx = new RequestContext(buffer);
             
             var binding = new DataStreamBindingJson(ctx, null, null, false, Collections.emptyMap());
-            binding.serializeCreate(datastream);
+            binding.serialize(null, datastream, false);
 
             return sendPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemId + "/" + DATASTREAMS_COLLECTION),
@@ -529,7 +582,7 @@ public class ConSysApiClient
 
             binding.startCollection();
             for (var ds: datastreams)
-                binding.serializeCreate(ds);
+                binding.serialize(null, ds, false);
             binding.endCollection(Collections.emptyList());
 
             return sendBatchPostRequest(

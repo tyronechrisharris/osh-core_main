@@ -15,6 +15,7 @@ Copyright (C) 2024 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.feature;
 
 import java.util.Objects;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.utils.OshAsserts;
 import org.vast.ogc.xlink.ExternalLink;
 import org.vast.util.Asserts;
@@ -29,6 +30,13 @@ public class FeatureLink extends FeatureId
     {
         this.link = Asserts.checkNotNull(link, ExternalLink.class);
         OshAsserts.checkValidURI(link.getHref());
+    }
+    
+    
+    public FeatureLink(BigId internalId, ExternalLink link)
+    {
+        this(link);
+        this.internalID = Asserts.checkNotNull(internalId, BigId.class);
     }
     
     
