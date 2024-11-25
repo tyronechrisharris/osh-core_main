@@ -141,7 +141,7 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
             if (contextData.dsInfo != null && contextData.dsInfo.getRecordEncoding() instanceof BinaryEncoding)
                 format = ResourceFormat.SWE_BINARY;
             else
-                format = ResourceFormat.OM_JSON;
+                format = ResourceFormat.JSON;
             ctx.setFormat(format);
         }
         

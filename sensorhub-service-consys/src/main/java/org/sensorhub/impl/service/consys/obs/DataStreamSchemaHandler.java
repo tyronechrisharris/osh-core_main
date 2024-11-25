@@ -55,13 +55,13 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
         // generate proper schema depending on obs format
         var obsFormat = parseFormat("obsFormat", ctx.getParameterMap());
         if (obsFormat == null)
-            obsFormat = ResourceFormat.OM_JSON;
+            obsFormat = ResourceFormat.JSON;
         
         if (obsFormat.getMimeType().equals("logical"))
             return new DataStreamSchemaBindingLogicalJsonSchema(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
             return new DataStreamBindingHtml(ctx, idEncoders, obsFormat);
-        else if (obsFormat.equals(ResourceFormat.OM_JSON))
+        else if (obsFormat.isOneOf(ResourceFormat.JSON, ResourceFormat.OM_JSON))
             return new DataStreamSchemaBindingOmJson(ctx, idEncoders, forReading);
         else if (obsFormat.getMimeType().startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
             return new DataStreamSchemaBindingSweCommon(obsFormat, ctx, idEncoders, forReading);
