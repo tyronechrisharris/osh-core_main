@@ -37,7 +37,10 @@ public interface IMessageQueuePush
     public void init(MessageQueueConfig config);
     
     
-    public void publish(byte[] msg);
+    public void publish(byte[] payload);
+    
+    
+    public void publish(Map<String,String> attrs, byte[] payload);
     
     
     public void registerListener(MessageListener listener);
