@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.consys.client;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
@@ -26,6 +27,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.feature.FeatureId;
+import org.sensorhub.api.feature.FeatureLink;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.helper.GeoPosHelper;
@@ -94,7 +96,8 @@ public class TestClientDataStreams extends TestClientBase
         var dsInfo = client.getDatastreamById(dsId, ResourceFormat.JSON, false).get();
         
         assertEquals(recordStruct.getName(), dsInfo.getOutputName());
-        assertEquals(sysId, BigId.toString32(dsInfo.getSystemID().getInternalID()));
+        assertEquals(systemTests.getSystemUid(1), dsInfo.getSystemID().getUniqueID());
+        assertTrue(((FeatureLink)dsInfo.getSystemID()).getLink().getHref().contains(sysId));
     }
     
     
