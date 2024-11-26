@@ -688,7 +688,7 @@ public class ConSysApiClient
             } else {
                 ctx.setFormat(ResourceFormat.OM_JSON);
                 var binding = new ObsBindingOmJson(ctx, null, false, obsStore);
-                binding.serializeCreate(obs);
+                binding.serialize(null, obs, false);
             }
 
             return sendPostRequest(

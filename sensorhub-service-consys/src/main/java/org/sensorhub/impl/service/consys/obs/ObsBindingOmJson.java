@@ -155,42 +155,11 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
         
         return newObs;
     }
-    
-    
-    public void serializeCreate(IObsData obs) throws IOException
-    {
-        writer.beginObject();
-        
-        /*if (obs.hasFoi())
-        {
-            var foiId = idEncoders.getFoiIdEncoder().encodeID(obs.getFoiID());
-            writer.name("foi@id").value(foiId);
-        }*/
-        
-        writer.name("phenomenonTime").value(obs.getPhenomenonTime().toString());
-        writer.name("resultTime").value(obs.getResultTime().toString());
-        
-        // create or reuse existing result writer and write result data
-        writer.name("result");
-        var resultWriter = resultWriters.computeIfAbsent(obs.getDataStreamID(),
-            k -> getSweCommonWriter(k, writer, ctx.getPropertyFilter()) );
-        
-        // write if JSON is supported, otherwise print warning message
-        if (resultWriter instanceof JsonDataWriterGson)
-            resultWriter.write(obs.getResult());
-        else
-            writer.value("Compressed binary result not shown in JSON");
-        
-        writer.endObject();
-        writer.flush();
-    }
 
 
     @Override
     public void serialize(BigId key, IObsData obs, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(obs.getDataStreamID());
-        
         writer.beginObject();
         
         if (key != null)
@@ -199,7 +168,11 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
             writer.name("id").value(obsId);
         }
         
-        writer.name("datastream@id").value(dsId);
+        if (!ctx.isClientSide())
+        {
+            var dsId = idEncoders.getDataStreamIdEncoder().encodeID(obs.getDataStreamID());
+            writer.name("datastream@id").value(dsId);
+        }
         
         if (obs.hasFoi())
         {
