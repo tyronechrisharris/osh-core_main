@@ -6,7 +6,7 @@ import org.sensorhub.api.module.ModuleConfig;
 
 public abstract class MessageQueueConfig extends ModuleConfig
 {
-    @DisplayInfo(desc="Name of topic to use for publish and subscribe operations")
+    @DisplayInfo(desc="Name of topic/queue to use for publish and subscribe operations")
     public String topicName;
     
     @DisplayInfo(desc="Name of subscription to use for publish and subscribe operations")
