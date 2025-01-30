@@ -31,7 +31,6 @@ import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.api.system.ISystemGroupDriver;
 import org.sensorhub.api.system.SystemChangedEvent;

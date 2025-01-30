@@ -108,9 +108,19 @@ public interface ISystemDriverRegistry
      * @return A future that will be completed when the feature of interest is
      * successfully registered or report an exception if an error occurred.
      */
-    public CompletableFuture<Boolean> register(ISystemDriver proc, IFeature foi);
+    public CompletableFuture<Boolean> register(ISystemDriver sys, IFeature foi);
 
 
+    /**
+     * Asynchronously registers a feature of interest.
+     * @param sysUID The unique identifier of the system hosting the feature of interest
+     * @param foi The feature of interest
+     * @return A future that will be completed when the feature of interest is
+     * successfully registered or report an exception if an error occurred.
+     */
+    public CompletableFuture<Boolean> register(String sysUID, IFeature foi);
+    
+    
     /**
      * Unregisters a system driver and all its datastreams, command streams
      * and subsystems, recursively.

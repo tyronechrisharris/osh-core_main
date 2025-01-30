@@ -220,11 +220,19 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
     
     
     @Override
-    public CompletableFuture<Boolean> register(ISystemDriver proc, IFeature foi)
+    public CompletableFuture<Boolean> register(ISystemDriver sys, IFeature foi)
     {
-        Asserts.checkNotNull(proc, ISystemDriver.class);
+        Asserts.checkNotNull(sys, ISystemDriver.class);
+        var sysUID = OshAsserts.checkValidUID(sys.getUniqueIdentifier());
+        
+        return register(sysUID, foi);
+    }
+    
+    
+    @Override
+    public CompletableFuture<Boolean> register(String sysUID, IFeature foi)
+    {
         Asserts.checkNotNull(foi, IFeature.class);
-        var sysUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
         return getDriverHandler(sysUID).register(foi);
     }
