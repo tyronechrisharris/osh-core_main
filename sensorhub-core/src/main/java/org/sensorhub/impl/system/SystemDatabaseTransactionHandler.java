@@ -351,6 +351,8 @@ public class SystemDatabaseTransactionHandler
                 public BigId load(String uid)
                 {
                     var fk = db.getFoiStore().getCurrentVersionKey(uid);
+                    if (fk == null)
+                        throw new IllegalStateException("Unknown FOI: " + uid);
                     return fk.getInternalID();
                 }
             });
