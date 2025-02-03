@@ -41,8 +41,8 @@ subprojects {
   apply plugin: 'eclipse'
   apply plugin: 'maven-publish'
   
-  sourceCompatibility = 11
-  targetCompatibility = 11
+  sourceCompatibility = 17
+  targetCompatibility = 17
   ext.details = null
   ext.pom = {} // pom data that subprojects can append to
   
