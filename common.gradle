@@ -17,7 +17,7 @@ buildscript {
     
 allprojects  {
   group = 'org.sensorhub'
-
+  
   repositories {
     maven { url "https://repo.maven.apache.org/maven2" }
   }
@@ -32,6 +32,13 @@ allprojects  {
       ignoreExitValue = true
   }
   ext.buildNumber = "$stdout".trim()
+  
+  afterEvaluate { project ->
+    if (sourceCompatibility) {
+      sourceCompatibility = 17
+      targetCompatibility = 17
+    }
+  }
 }
 
 
@@ -41,8 +48,6 @@ subprojects {
   apply plugin: 'eclipse'
   apply plugin: 'maven-publish'
   
-  sourceCompatibility = 17
-  targetCompatibility = 17
   ext.details = null
   ext.pom = {} // pom data that subprojects can append to
   
@@ -358,7 +363,7 @@ subprojects {
 // distribution zip files
 apply plugin: 'java-library'
 apply plugin: 'distribution'
-targetCompatibility = 1.11
+
 tasks.jar.enabled = false
 afterEvaluate { // disable all distTar tasks
   tasks.each {
