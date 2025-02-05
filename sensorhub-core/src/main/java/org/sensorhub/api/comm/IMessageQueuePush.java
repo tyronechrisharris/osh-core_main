@@ -25,7 +25,7 @@ import java.util.Map;
  * @author Alex Robin
  * @since Nov 29, 2017
  */
-public interface IMessageQueuePush
+public interface IMessageQueuePush<T extends MessageQueueConfig>
 {
     
     public interface MessageListener
@@ -34,7 +34,7 @@ public interface IMessageQueuePush
     }
     
     
-    public void init(MessageQueueConfig config);
+    public void init(T config);
     
     
     public void publish(byte[] payload);

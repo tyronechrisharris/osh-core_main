@@ -31,7 +31,7 @@ import org.sensorhub.impl.event.ListenerSubscriber;
  * @author Alex Robin
  * @since Jan 31, 2025
  */
-public class LocalMessageQueue implements IMessageQueuePush
+public class LocalMessageQueue implements IMessageQueuePush<MessageQueueConfig>
 {
     SubmissionPublisher<Message> queue;
     Map<MessageListener, ListenerSubscriber> listeners = new ConcurrentHashMap<>();
