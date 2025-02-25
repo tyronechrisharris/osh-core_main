@@ -15,6 +15,8 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.comm;
 
 import java.util.Map;
+import org.sensorhub.api.module.IModule;
+
 
 /**
  * <p>
@@ -34,7 +36,7 @@ public interface IMessageQueuePush<T extends MessageQueueConfig>
     }
     
     
-    public void init(T config);
+    public void init(IModule<?> parentModule, T config);
     
     
     public void publish(byte[] payload);

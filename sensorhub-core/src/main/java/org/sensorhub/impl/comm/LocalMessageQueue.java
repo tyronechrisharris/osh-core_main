@@ -20,6 +20,7 @@ import java.util.concurrent.SubmissionPublisher;
 import org.sensorhub.api.comm.IMessageQueuePush;
 import org.sensorhub.api.comm.MessageQueueConfig;
 import org.sensorhub.api.event.Event;
+import org.sensorhub.api.module.IModule;
 import org.sensorhub.impl.event.ListenerSubscriber;
 
 
@@ -60,7 +61,7 @@ public class LocalMessageQueue implements IMessageQueuePush<MessageQueueConfig>
     
     
     @Override
-    public void init(MessageQueueConfig config)
+    public void init(final IModule<?> parentModule, final MessageQueueConfig config)
     {
         queue = new SubmissionPublisher<>();
     }
