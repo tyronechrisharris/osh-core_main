@@ -137,5 +137,14 @@ public interface IDataStreamInfo extends IResource
      * same deployment)
      */
     FeatureId getDeploymentID();
+    
+    
+    /**
+     * @return The full name of the datastream combining the system UID and the output name
+     */
+    default String getFullName()
+    {
+        return getSystemID().getUniqueID() + "#" + getOutputName();
+    }
 
 }
