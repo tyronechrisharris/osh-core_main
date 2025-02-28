@@ -41,6 +41,7 @@ import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.service.IHttpServer;
 import org.sensorhub.api.service.ServiceConfig;
 import org.sensorhub.api.system.ISystemDriver;
+import org.sensorhub.api.system.ISystemGroupDriver;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorSystem;
 import org.sensorhub.impl.sensor.SensorSystemConfig.SystemMember;
@@ -1065,15 +1066,19 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         newItem.getItemProperty(PROP_MODULE_OBJECT).setValue(module);
         
         // add submodules
-        if (module instanceof SensorSystem)
+        if (module instanceof ISystemGroupDriver)
         {
-            var subModules = ((SensorSystem) module).getMembers();
-            for (IDataProducerModule<?> member: subModules.values())
+            var subModules = ((ISystemGroupDriver<?>) module).getMembers();
+            for (var subModule: subModules.values())
             {
-                var memberID = member.getLocalID();
-                table.addItem(new Object[] {member.getName(), member.getCurrentState(), member}, memberID);
-                table.setParent(memberID, moduleID);
-                table.setChildrenAllowed(memberID, false);
+                if (subModule instanceof IModule)
+                {
+                    IModule<?> member = (IModule<?>)subModule;
+                    var memberID = member.getLocalID();
+                    table.addItem(new Object[] {member.getName(), member.getCurrentState(), member}, memberID);
+                    table.setParent(memberID, moduleID);
+                    table.setChildrenAllowed(memberID, false);
+                }
             }
         }
         else
