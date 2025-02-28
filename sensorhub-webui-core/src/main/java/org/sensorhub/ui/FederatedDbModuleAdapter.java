@@ -29,6 +29,7 @@ import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
+import org.slf4j.Logger;
 
 
 public class FederatedDbModuleAdapter implements IObsSystemDatabaseModule<DatabaseConfig>
@@ -256,6 +257,13 @@ public class FederatedDbModuleAdapter implements IObsSystemDatabaseModule<Databa
     @Override
     public void unregisterListener(IEventListener listener)
     {        
+    }
+
+
+    @Override
+    public Logger getLogger()
+    {
+        return null;
     }
     
 }

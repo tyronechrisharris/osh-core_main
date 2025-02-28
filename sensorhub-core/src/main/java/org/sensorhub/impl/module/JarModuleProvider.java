@@ -14,9 +14,9 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.module;
 
-import org.sensorhub.api.module.IModule;
+import org.sensorhub.api.module.IModuleBase;
 import org.sensorhub.api.module.IModuleProvider;
-import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.api.module.ModuleConfigBase;
 import org.sensorhub.utils.ModuleUtils;
 
 
@@ -71,14 +71,14 @@ public abstract class JarModuleProvider implements IModuleProvider
 
 
     @Override
-    public Class<? extends IModule<?>> getModuleClass()
+    public Class<? extends IModuleBase<?>> getModuleClass()
     {
         return manifestInfo.getModuleClass();
     }
 
 
     @Override
-    public Class<? extends ModuleConfig> getModuleConfigClass()
+    public Class<? extends ModuleConfigBase> getModuleConfigClass()
     {
         return manifestInfo.getModuleConfigClass();
     }

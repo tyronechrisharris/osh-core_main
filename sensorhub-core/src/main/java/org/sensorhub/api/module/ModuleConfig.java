@@ -15,19 +15,18 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.module;
 
 import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.utils.ConfigCloner;
 import com.google.gson.annotations.SerializedName;
 
 
 /**
  * <p>
- * Base class to hold modules' configuration options
+ * Base class to hold main modules configuration options
  * </p>
  *
  * @author Alex Robin
  * @since Nov 16, 2010
  */
-public class ModuleConfig implements Cloneable
+public class ModuleConfig extends ModuleConfigBase
 {   
     
     /**
@@ -38,17 +37,6 @@ public class ModuleConfig implements Cloneable
     public String id;
     
     
-    /**
-     * Class implementing the module (will be instantiated when module is loaded)
-     */
-    @DisplayInfo(label="Module Class", desc="Module implementation class")
-    public String moduleClass;
-    
-    
-    @DisplayInfo(label="Module Name", desc="User chosen name for the module")
-    public String name;
-    
-    
     @DisplayInfo(label="Description", desc="User description for the module")
     public String description;
     
@@ -56,11 +44,11 @@ public class ModuleConfig implements Cloneable
     @DisplayInfo(label="Auto Start", desc="Set to automatically start the module when it is loaded")
     @SerializedName(value="autoStart", alternate={"enabled"})
     public boolean autoStart = false;
-
-
+    
+    
     @Override
     public ModuleConfig clone()
     {
-        return new ConfigCloner().deepClone(this);
+        return (ModuleConfig)super.clone();
     }
 }

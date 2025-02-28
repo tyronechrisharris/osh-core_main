@@ -31,6 +31,7 @@ import org.sensorhub.api.config.DisplayInfo.ValueRange;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.api.module.ModuleConfigBase;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorSystemConfig.SystemMember;
 import org.sensorhub.ui.ModuleInstanceSelectionPopup.ModuleInstanceSelectionCallback;
@@ -682,9 +683,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 // show popup to select among available module types
                 ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(moduleTypes, new ModuleTypeSelectionWithClearCallback() {
                     @Override
-                    public void onSelected(ModuleConfig config)
+                    public void onSelected(ModuleConfigBase config)
                     {
-                        config.id = null;
                         config.name = null;
                         
                         try

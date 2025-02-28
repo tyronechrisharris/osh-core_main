@@ -32,6 +32,7 @@ import org.sensorhub.api.data.IDataProducerModule;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.api.module.ModuleConfigBase;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.processing.ProcessConfig;
@@ -748,7 +749,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                     // show popup to select among available module types
                     ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(configType, new ModuleTypeSelectionCallback() {
                         @Override
-                        public void onSelected(ModuleConfig config)
+                        public void onSelected(ModuleConfigBase config)
                         {
                             try
                             {
@@ -756,7 +757,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                                 logAction(action, config.moduleClass);
                                 
                                 // load module instance
-                                IModule<?> module = moduleRegistry.loadModule(config);
+                                IModule<?> module = moduleRegistry.loadModule((ModuleConfig)config);
                                 
                                 // no need to add module to table here
                                 // it will be loaded when the LOADED event is received
@@ -832,7 +833,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                         // show popup to select among available module types
                         ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(ISystemDriver.class, new ModuleTypeSelectionCallback() {
                             @Override
-                            public void onSelected(ModuleConfig config)
+                            public void onSelected(ModuleConfigBase config)
                             {
                                 try
                                 {
@@ -840,7 +841,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                                     logAction(action, config.moduleClass);
                                     
                                     var newMember = new SystemMember();
-                                    newMember.config = config;
+                                    newMember.config = (ModuleConfig)config;
                                     
                                     var newModule = ((SensorSystem)selectedModule).addSubsystem(newMember);
                                     

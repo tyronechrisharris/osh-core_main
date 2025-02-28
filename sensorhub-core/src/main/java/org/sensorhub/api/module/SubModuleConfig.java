@@ -8,7 +8,7 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2025 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -17,23 +17,19 @@ package org.sensorhub.api.module;
 
 /**
  * <p>
- * Interface to be implemented to enable automatic module discovery
+ * Base class for submodule config
  * </p>
  *
  * @author Alex Robin
- * @since Sep 7, 2013
+ * @since Feb 28, 2025
  */
-public interface IModuleProvider
+public class SubModuleConfig extends ModuleConfigBase
 {
-    public String getModuleName();
+
     
-    public String getModuleDescription();
-    
-    public String getModuleVersion();
-    
-    public String getProviderName();
-    
-    public Class<? extends IModuleBase<?>> getModuleClass();
-    
-    public Class<? extends ModuleConfigBase> getModuleConfigClass();    
+    @Override
+    public SubModuleConfig clone()
+    {
+        return (SubModuleConfig)super.clone();
+    }
 }

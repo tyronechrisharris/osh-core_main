@@ -19,7 +19,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.sensorhub.api.module.IModuleProvider;
-import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.api.module.ModuleConfigBase;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.ui.api.UIConstants;
 import com.vaadin.ui.Alignment;
@@ -53,7 +53,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
     
     protected interface ModuleTypeSelectionCallback
     {
-        public void onSelected(ModuleConfig config);
+        public void onSelected(ModuleConfigBase config);
     }
     
     
@@ -173,7 +173,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
                         getUI().push();
                         
                         // send back new config object
-                        ModuleConfig config = registry.createModuleConfig(provider);
+                        var config = registry.createModuleConfig(provider);
                         callback.onSelected(config); 
                     }
                     

@@ -15,7 +15,7 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.comm;
 
 import java.util.Map;
-import org.sensorhub.api.module.IModule;
+import org.sensorhub.api.module.ISubModule;
 
 
 /**
@@ -27,16 +27,13 @@ import org.sensorhub.api.module.IModule;
  * @author Alex Robin
  * @since Nov 29, 2017
  */
-public interface IMessageQueuePush<T extends MessageQueueConfig>
+public interface IMessageQueuePush<T extends MessageQueueConfig> extends ISubModule<T>
 {
     
     public interface MessageListener
     {
         public void receive(Map<String,String> attrs, byte[] payload);
     }
-    
-    
-    public void init(IModule<?> parentModule, T config);
     
     
     public void publish(byte[] payload);
@@ -49,10 +46,4 @@ public interface IMessageQueuePush<T extends MessageQueueConfig>
     
     
     public void unregisterListener(MessageListener listener);
-    
-    
-    public void start();
-    
-    
-    public void stop();
 }

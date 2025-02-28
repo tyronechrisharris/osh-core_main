@@ -19,6 +19,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventProducer;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
+import org.slf4j.Logger;
 
 
 /**
@@ -27,10 +28,10 @@ import org.sensorhub.api.module.ModuleEvent.ModuleState;
  * </p>
  *
  * @author Alex Robin
- * @param <ConfigType> 
+ * @param <T> Type of module config 
  * @since Nov 12, 2010
  */
-public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
+public interface IModule<T extends ModuleConfig> extends IModuleBase<T>, IEventProducer
 {
     public static final String CANNOT_LOAD_MSG = "Cannot load module ";
     public static final String CANNOT_INIT_MSG = "Cannot initialize module ";
@@ -59,22 +60,7 @@ public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
      * Sets the parent sensor hub and module configuration
      * @param config
      */
-    public void setConfiguration(ConfigType config);
-    
-    
-    /**
-     * Retrieves a copy of the module configuration
-     * (i.e. for reading only since changes won't have any effect until updateConfig is called)
-     * @return a copy of the configuration object associated to this module
-     */
-    public ConfigType getConfiguration();
-    
-    
-    /**
-     * Helper method to get the module's name
-     * @return name string
-     */
-    public String getName();
+    public void setConfiguration(T config);
     
     
     /**
@@ -135,6 +121,12 @@ public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
     
     
     /**
+     * @return the logger associated to this module
+     */
+    public Logger getLogger();
+    
+    
+    /**
      * Requests the module to initialize with the current configuration.<br/>
      * Implementations of this method can be synchronous or asynchronous, but when 
      * this method returns without error, the module state is guaranteed to be
@@ -147,17 +139,6 @@ public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
     
     
     /**
-     * Initializes the module with the specified configuration.<br/>
-     * This is equivalent to calling {@link #setConfiguration(ModuleConfig)}
-     * and then {@link #init()} with no arguments.<br/>
-     * @param config
-     * @throws SensorHubException if an error occurs during synchronous execution. 
-     * If an error occurs asynchronously, it can be retrieved with {@link #getCurrentError()}
-     */
-    public void init(ConfigType config) throws SensorHubException;
-    
-    
-    /**
      * Updates the module's configuration dynamically.<br/>
      * The module must honor this new configuration unless an error is detected.
      * It is the responsability of the module to initiate a restart if the new
@@ -165,7 +146,7 @@ public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
      * @param config
      * @throws SensorHubException 
      */
-    public void updateConfig(ConfigType config) throws SensorHubException;
+    public void updateConfig(T config) throws SensorHubException;
     
     
     /**

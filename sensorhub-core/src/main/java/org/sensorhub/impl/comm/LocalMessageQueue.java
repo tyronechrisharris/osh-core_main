@@ -19,9 +19,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SubmissionPublisher;
 import org.sensorhub.api.comm.IMessageQueuePush;
 import org.sensorhub.api.comm.MessageQueueConfig;
+import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.event.Event;
-import org.sensorhub.api.module.IModule;
 import org.sensorhub.impl.event.ListenerSubscriber;
+import org.sensorhub.impl.module.AbstractSubModule;
 
 
 /**
@@ -32,7 +33,7 @@ import org.sensorhub.impl.event.ListenerSubscriber;
  * @author Alex Robin
  * @since Jan 31, 2025
  */
-public class LocalMessageQueue implements IMessageQueuePush<MessageQueueConfig>
+public class LocalMessageQueue extends AbstractSubModule<MessageQueueConfig> implements IMessageQueuePush<MessageQueueConfig>
 {
     SubmissionPublisher<Message> queue;
     Map<MessageListener, ListenerSubscriber> listeners = new ConcurrentHashMap<>();
@@ -61,8 +62,9 @@ public class LocalMessageQueue implements IMessageQueuePush<MessageQueueConfig>
     
     
     @Override
-    public void init(final IModule<?> parentModule, final MessageQueueConfig config)
+    public void init(final MessageQueueConfig config) throws SensorHubException
     {
+        super.init(config);
         queue = new SubmissionPublisher<>();
     }
 

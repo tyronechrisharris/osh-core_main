@@ -662,6 +662,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     }
     
     
+    @Override
     public Logger getLogger()
     {
         if (logger == null)

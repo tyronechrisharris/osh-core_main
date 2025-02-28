@@ -24,10 +24,13 @@ import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.event.BasicEventHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class DummyModule implements IModule<ModuleConfig>
 {
+    static Logger logger = LoggerFactory.getLogger(DummyModule.class);
     ISensorHub hub;
     ModuleConfig config;
     ModuleState state = ModuleState.LOADED;
@@ -197,6 +200,13 @@ public class DummyModule implements IModule<ModuleConfig>
     public ISensorHub getParentHub()
     {
         return this.hub;
+    }
+
+
+    @Override
+    public Logger getLogger()
+    {
+        return logger;
     }
     
 }

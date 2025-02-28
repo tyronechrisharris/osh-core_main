@@ -8,7 +8,7 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2025 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -17,23 +17,28 @@ package org.sensorhub.api.module;
 
 /**
  * <p>
- * Interface to be implemented to enable automatic module discovery
+ * Generic interface for all submodules.
+ * </p><p>
+ * Submodules are reusable components such as comm providers, message queues,
+ * data loggers, etc. that are managed by a parent module.
  * </p>
  *
  * @author Alex Robin
- * @since Sep 7, 2013
+ * @since Feb 28, 2025
  */
-public interface IModuleProvider
+public interface ISubModule<T extends SubModuleConfig> extends IModuleBase<T>
 {
-    public String getModuleName();
     
-    public String getModuleDescription();
+    /**
+     * Sets the submodule parent module
+     * @param parentModule
+     */
+    public void setParentModule(IModule<?> parentModule);
     
-    public String getModuleVersion();
     
-    public String getProviderName();
+    /**
+     * @return The submodule parent module
+     */
+    public IModule<?> getParentModule();
     
-    public Class<? extends IModuleBase<?>> getModuleClass();
-    
-    public Class<? extends ModuleConfigBase> getModuleConfigClass();    
 }

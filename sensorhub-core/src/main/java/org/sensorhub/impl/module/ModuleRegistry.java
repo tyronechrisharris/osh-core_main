@@ -46,10 +46,13 @@ import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.module.IModuleManager;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.IModuleStateManager;
+import org.sensorhub.api.module.ISubModule;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.api.module.ModuleConfigBase;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.module.ModuleEvent.Type;
+import org.sensorhub.api.module.SubModuleConfig;
 import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.utils.Async;
 import org.sensorhub.utils.FileUtils;
@@ -401,6 +404,39 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     
     /**
      * Helper method to load and optionally initialize a sub module.
+     * The submodule will be automatically associated with the provided parent module.
+     * Once this method returns, the caller (i.e. usually the parent module) is responsible for
+     * managing the submodule life cycle, not the module registry itself.
+     * @param <T> Type of module configuration
+     * @param parentModule The module that will be set as the parent of the submodule
+     * @param config Sub module configuration class
+     * @param init If set to true, also initialize the module
+     * @return The module instance
+     * @throws SensorHubException
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends ISubModule<C>, C extends SubModuleConfig> T loadSubModule(IModule<?> parentModule, C config, boolean init) throws SensorHubException
+    {
+        Asserts.checkNotNull(config, ModuleConfig.class);
+        Asserts.checkNotNullOrBlank(config.moduleClass, "moduleClass");
+        
+        try
+        {
+            var comp = (T)loadModuleClass(config.moduleClass);
+            comp.setParentModule(parentModule);
+            if (init)
+                comp.init(config);
+            return comp;
+        }
+        catch (Exception e)
+        {
+            throw new SensorHubException("Cannot load submodule " + config.moduleClass, e);
+        }
+    }
+    
+    
+    /**
+     * Helper method to load and optionally initialize a sub module.
      * A sub module is a module loaded by another module. Once this method returns, the
      * caller (i.e. usually the parent module) is responsible for managing the submodule
      * life cycle, not the module registry itself.
@@ -440,16 +476,21 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * @return the new configuration class
      * @throws SensorHubException
      */
-    public ModuleConfig createModuleConfig(IModuleProvider provider) throws SensorHubException
+    public ModuleConfigBase createModuleConfig(IModuleProvider provider) throws SensorHubException
     {
         try
         {
             Class<?> configClass = provider.getModuleConfigClass();
-            ModuleConfig config = (ModuleConfig)configClass.getDeclaredConstructor().newInstance();
-            config.id = UUID.randomUUID().toString();
+            var config = (ModuleConfigBase)configClass.getDeclaredConstructor().newInstance();
             config.moduleClass = provider.getModuleClass().getCanonicalName();
-            config.name = "New " + provider.getModuleName();
-            config.autoStart = false;
+            
+            if (config instanceof ModuleConfig)
+            {
+                ((ModuleConfig)config).id = UUID.randomUUID().toString();
+                ((ModuleConfig)config).name = "New " + provider.getModuleName();
+                ((ModuleConfig)config).autoStart = false;
+            }
+            
             return config;
         }
         catch (NoClassDefFoundError | ReflectiveOperationException e)
