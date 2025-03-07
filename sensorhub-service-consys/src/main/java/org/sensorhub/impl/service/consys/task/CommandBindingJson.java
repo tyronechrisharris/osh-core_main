@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys.task;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
@@ -189,6 +190,14 @@ public class CommandBindingJson extends ResourceBindingJson<BigId, ICommandData>
         
         writer.endObject();
         writer.flush();
+    }
+    
+    
+    protected JsonWriter getJsonWriter(OutputStream os, PropertyFilter propFilter) throws IOException
+    {
+        var writer = super.getJsonWriter(os, propFilter);
+        writer.setSerializeNulls(true);
+        return writer;
     }
     
     

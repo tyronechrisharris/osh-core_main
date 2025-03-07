@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.consys.obs;
 
 import static org.sensorhub.impl.service.consys.SWECommonUtils.OM_COMPONENTS_FILTER;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
@@ -196,6 +197,14 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
         
         writer.endObject();
         writer.flush();
+    }
+    
+    
+    protected JsonWriter getJsonWriter(OutputStream os, PropertyFilter propFilter) throws IOException
+    {
+        var writer = super.getJsonWriter(os, propFilter);
+        writer.setSerializeNulls(true);
+        return writer;
     }
     
     
