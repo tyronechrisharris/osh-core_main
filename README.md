@@ -1,7 +1,7 @@
 OpenSensorHub
 ===========================================================
 
-[![Build Status](https://travis-ci.org/opensensorhub/osh-core.svg?branch=master)](https://travis-ci.org/opensensorhub/osh-core)
+[![Build Status](https://github.com/opensensorhub/osh-core/actions/workflows/gradle_build.yml/badge.svg)](https://github.com/opensensorhub/osh-core/actions/workflows/gradle_build.yml)
 [![GitHub Release](https://img.shields.io/github/release/opensensorhub/osh-core.svg)](https://github.com/opensensorhub/osh-core/releases/latest)
 [![OpenSensorHub Discord](https://user-images.githubusercontent.com/7288322/34429117-c74dbd12-ecb8-11e7-896d-46369cd0de5b.png)](https://discord.gg/6k3QYRSh9F)
 
