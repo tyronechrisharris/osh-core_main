@@ -34,9 +34,9 @@ allprojects  {
   ext.buildNumber = "$stdout".trim()
   
   afterEvaluate { project ->
-    if (sourceCompatibility) {
-      sourceCompatibility = 17
-      targetCompatibility = 17
+    if (project.hasProperty('sourceCompatibility')) {
+      project.sourceCompatibility = 17
+      project.targetCompatibility = 17
     }
   }
 }
