@@ -642,7 +642,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         subform.setParentForm(this);
         
         // add change button if property is changeable module or object config
-        if (ModuleConfig.class.isAssignableFrom(beanType))
+        if (ModuleConfigBase.class.isAssignableFrom(beanType))
         {
             addChangeModuleButton(subform, propId, prop, beanType);
         }
