@@ -43,6 +43,32 @@ public abstract class BaseHandler implements IResourceHandler
     
     protected final Map<String, IResourceHandler> subResources = new HashMap<>();
     protected final IdEncoders idEncoders;
+    
+    
+    @SuppressWarnings("serial")
+    public static class IdCollection extends ArrayList<Object>
+    {
+        boolean isUids;
+        
+        public boolean isUids()
+        {
+            return isUids;
+        }
+        
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        public Collection<BigId> getBigIds()
+        {
+            var col = (Collection)this;
+            return (Collection<BigId>)col;
+        }
+        
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        public Collection<String> getUids()
+        {
+            var col = (Collection)this;
+            return (Collection<String>)col;
+        }
+    }
 
     
     public BaseHandler()
@@ -175,6 +201,53 @@ public abstract class BaseHandler implements IResourceHandler
                         throw ServiceErrors.badRequest("Invalid resource ID: " + id);
                     }
                 }
+            }
+        }
+        
+        return allValues;
+    }
+    
+    
+    protected IdCollection parseResourceIdsOrUids(String paramName, final Map<String, String[]> queryParams, IdEncoder idEncoder) throws InvalidRequestException
+    {
+        var allValues = new IdCollection();
+        
+        var paramValues = parseMultiValuesArg(paramName, queryParams);
+        if (paramValues != null)
+        {
+            // check if they are IDs or UIDs
+            boolean hasBigIds = false;
+            boolean hasUris = false;
+            for (String id: paramValues)
+            {
+                // check for : char since it's mandatory in a URI
+                // but not allowed in BigId
+                if (id.contains(":"))
+                    hasUris = true;
+                else
+                    hasBigIds = true;
+            }
+            
+            if (hasUris && hasBigIds)
+                throw ServiceErrors.badRequest("The ID list cannot mix unique IDs (URIs) and local IDs");
+            allValues.isUids = hasUris;
+            
+            for (String id: paramValues)
+            {
+                if (hasBigIds)
+                {   
+                    try
+                    {
+                        var internalID = idEncoder.decodeID(id);
+                        allValues.add(internalID);
+                    }
+                    catch (IllegalArgumentException e)
+                    {
+                        throw ServiceErrors.badRequest("Invalid resource ID: " + id);
+                    }
+                }
+                else
+                    allValues.add(id);
             }
         }
         

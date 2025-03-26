@@ -29,6 +29,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
+import com.google.gson.Strictness;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -133,7 +134,7 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature, DB exten
     protected JsonReader getJsonReader(InputStream is) throws IOException
     {
         JsonReader reader = new JsonReader(new InputStreamReader(is, StandardCharsets.UTF_8.name()));
-        reader.setLenient(true);
+        reader.setStrictness(Strictness.LENIENT);
         return reader;
     }
     

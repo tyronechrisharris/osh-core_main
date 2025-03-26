@@ -478,9 +478,14 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
             builder.withResultTime(resultTime);
         
         // foi param
-        var foiIDs = parseResourceIds("foi", queryParams, idEncoders.getFoiIdEncoder());
+        var foiIDs = parseResourceIdsOrUids("foi", queryParams, idEncoders.getFoiIdEncoder());
         if (foiIDs != null && !foiIDs.isEmpty())
-            builder.withFois(foiIDs);
+        {
+            if (foiIDs.isUids())
+                builder.withFois().withUniqueIDs(foiIDs.getUids()).done();
+            else
+                builder.withFois(foiIDs.getBigIds());
+        }
         
         // datastream param
         var dsIDs = parseResourceIds("datastream", queryParams, idEncoders.getDataStreamIdEncoder());

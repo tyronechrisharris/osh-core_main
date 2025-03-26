@@ -92,15 +92,15 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
         }
         else
         {
-            // parent ID
-            var ids = parseResourceIds("parentId", queryParams, idEncoders.getFoiIdEncoder());
-            if (ids != null && !ids.isEmpty())
-                builder.withParents().withInternalIDs(ids).done();
+            var parentIDs = parseResourceIdsOrUids("parent", queryParams, idEncoders.getSystemIdEncoder());
             
-            // parent UID
-            var uids = parseMultiValuesArg("parentUid", queryParams);
-            if (uids != null && !uids.isEmpty())
-                builder.withParents().withUniqueIDs(uids).done();
+            if (parentIDs != null && !parentIDs.isEmpty())
+            {
+                if (parentIDs.isUids())
+                    builder.withParents().withUniqueIDs(parentIDs.getUids()).done();
+                else
+                    builder.withParents().withInternalIDs(parentIDs.getBigIds()).done();
+            }
         }
     }
 

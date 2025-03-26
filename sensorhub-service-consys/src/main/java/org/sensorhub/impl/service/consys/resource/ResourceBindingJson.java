@@ -37,6 +37,7 @@ import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.xlink.ExternalLink;
 import org.vast.ogc.xlink.XlinkUtils;
 import com.google.gson.JsonParseException;
+import com.google.gson.Strictness;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
@@ -142,7 +143,7 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
         else
             writer = new JsonInliningWriter(osw);
         
-        writer.setLenient(true);
+        writer.setStrictness(Strictness.LENIENT);
         writer.setSerializeNulls(false);
         writer.setIndent(INDENT);
         return writer;

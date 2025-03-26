@@ -112,33 +112,26 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         boolean searchMembers =  (val != null && !val.equalsIgnoreCase("false"));
         boolean parentSelected = false;
         
-        // parent ID
-        var ids = parseResourceIds("parentId", queryParams, idEncoders.getSystemIdEncoder());
-        if (ids != null && !ids.isEmpty())
+        // parent
+        var parentIDs = parseResourceIdsOrUids("parent", queryParams, idEncoders.getSystemIdEncoder());
+        if (parentIDs != null && !parentIDs.isEmpty())
         {
             parentSelected = true;
-            builder.withParents()
-                .withInternalIDs(ids)
-                .done();
+            
+            if (parentIDs.isUids())
+                builder.withParents().withUniqueIDs(parentIDs.getUids()).done();
+            else
+                builder.withParents().withInternalIDs(parentIDs.getBigIds()).done();
         }
         
-        // parent UID
-        var uids = parseMultiValuesArg("parentUid", queryParams);
-        if (uids != null && !uids.isEmpty())
-        {
-            parentSelected = true;
-            builder.withParents()
-                .withUniqueIDs(uids)
-                .done();
-        }
-        
-        // foi param
-        var foiIDs = parseResourceIds("foi", queryParams, idEncoders.getFoiIdEncoder());
+        // foi
+        var foiIDs = parseResourceIdsOrUids("foi", queryParams, idEncoders.getFoiIdEncoder());
         if (foiIDs != null && !foiIDs.isEmpty())
         {
-            builder.withFois()
-                    .withInternalIDs(foiIDs)
-                    .done();
+            if (foiIDs.isUids())
+                builder.withFois().withUniqueIDs(foiIDs.getUids()).done();
+            else
+                builder.withFois().withInternalIDs(foiIDs.getBigIds()).done();
         }
         
         // list only top level systems by default unless specific IDs are requested
@@ -146,13 +139,14 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
             !queryParams.containsKey("id") && !queryParams.containsKey("uid") && !queryParams.containsKey("foi"))
             builder.withNoParent();
         
-        // procedure UID
-        var procUids = parseMultiValuesArg("procedure", queryParams);
-        if (procUids != null && !procUids.isEmpty())
+        // procedure
+        var procIDs = parseResourceIdsOrUids("procedure", queryParams, idEncoders.getProcedureIdEncoder());
+        if (procIDs != null && !procIDs.isEmpty())
         {
-            builder.withProcedures()
-                .withUniqueIDs(procUids)
-                .done();
+            if (procIDs.isUids())
+                builder.withProcedures().withUniqueIDs(procIDs.getUids()).done();
+            else
+                builder.withProcedures().withInternalIDs(procIDs.getBigIds()).done();
         }
     }
 

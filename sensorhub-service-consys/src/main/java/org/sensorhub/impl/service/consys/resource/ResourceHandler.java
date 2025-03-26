@@ -18,6 +18,7 @@ import java.util.Map;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.common.IdEncoder;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
 import org.sensorhub.api.datastore.resource.IResourceStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
@@ -102,9 +103,14 @@ public abstract class ResourceHandler<
     protected void buildFilter(final ResourceRef parent, final Map<String, String[]> queryParams, final B builder) throws InvalidRequestException
     {
         // id param
-        var resourceIds = parseResourceIds("id", queryParams, idEncoder);
+        var resourceIds = parseResourceIdsOrUids("id", queryParams, idEncoder);
         if (resourceIds != null && !resourceIds.isEmpty())
-            builder.withInternalIDs(resourceIds);
+        {
+            if (resourceIds.isUids() && builder instanceof FeatureFilterBaseBuilder)
+                ((FeatureFilterBaseBuilder<?,?,?>)builder).withUniqueIDs(resourceIds.getUids());
+            else
+                builder.withInternalIDs(resourceIds.getBigIds());
+        }
         
         // keyword search
         var keywords = parseMultiValuesArg("q", queryParams);
