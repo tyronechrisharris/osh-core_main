@@ -1,5 +1,0 @@
-org.sensorhub.impl.database.obs.ProcedureObsEventDatabaseDescriptor
-org.sensorhub.impl.comm.TCPCommModuleDescriptor
-org.sensorhub.impl.comm.UDPCommModuleDescriptor
-org.sensorhub.impl.processing.SMLProcessDescriptor
-org.sensorhub.impl.security.BasicSecurityRealmDescriptor

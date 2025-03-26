@@ -24,7 +24,7 @@ public class TestSensorHubOsgi
             getBundlePath("sensorhub-core", version),
             getBundlePath("sensorhub-webui-core", version),
             getBundlePath("sensorhub-service-swe", version),
-            getBundlePath("sensorhub-service-sweapi", version),
+            getBundlePath("sensorhub-service-consys", version),
             getBundlePath("sensorhub-datastore-h2", version),
             getBundlePath("sensorhub-utils-kryo", version),
             Paths.get("../sensorhub-core-osgi/lib/org.apache.felix.bundlerepository-2.0.10.jar")
