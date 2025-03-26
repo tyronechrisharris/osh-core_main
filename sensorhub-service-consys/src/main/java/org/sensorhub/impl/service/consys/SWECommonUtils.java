@@ -32,7 +32,7 @@ import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.XmlDataParser;
 import org.vast.swe.fast.JsonDataParserGson;
-import org.vast.swe.fast.JsonDataWriter;
+import org.vast.swe.fast.JsonDataWriterGson;
 import org.vast.swe.fast.TextDataParser;
 import org.vast.swe.fast.TextDataWriter;
 import org.vast.swe.fast.XmlDataWriter;
@@ -143,8 +143,7 @@ public class SWECommonUtils
         
         if (sweEncoding instanceof JSONEncoding)
         {
-            //dataWriter = new JsonDataWriterGson();
-            dataWriter = new JsonDataWriter();
+            dataWriter = new JsonDataWriterGson();
         }
         else if (sweEncoding instanceof TextEncoding)
         {
