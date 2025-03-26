@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.utils;
 
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.Map;
 import org.sensorhub.impl.security.PermissionSetting;
 import com.rits.cloning.Cloner;
@@ -35,6 +36,16 @@ public class ConfigCloner extends Cloner
     }
     
     
+    static class FastClonerEnumSet implements IFastCloner
+    {
+        @Override
+        public Object clone(Object t, IDeepCloner cloner, Map<Object, Object> clones)
+        {
+            return ((EnumSet<?>)t).clone();
+        }        
+    }
+    
+    
     static class FastClonerPermissionSetting extends FastClonerCustomCollection<PermissionSetting>
     {
         @Override
@@ -48,8 +59,14 @@ public class ConfigCloner extends Cloner
     public ConfigCloner()
     {
         super();
-        this.registerFastCloner(Date.class, new FastClonerDate());
-        this.registerFastCloner(PermissionSetting.class, new FastClonerPermissionSetting());
+        
+        try {
+            this.registerFastCloner(Date.class, new FastClonerDate());
+            this.registerFastCloner(Class.forName("java.util.RegularEnumSet"), new FastClonerEnumSet());
+            this.registerFastCloner(PermissionSetting.class, new FastClonerPermissionSetting());
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
     
     
