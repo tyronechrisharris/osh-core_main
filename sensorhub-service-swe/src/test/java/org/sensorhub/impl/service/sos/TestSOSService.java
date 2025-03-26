@@ -605,7 +605,7 @@ public class TestSOSService
         checkOfferingTimeRange(dom, UID_SENSOR2, begin2.toString(), "now");
         
         // wait until timeout
-        AsyncTests.waitForCondition(() -> !sensor2.hasMoreData(), TIMEOUT);
+        AsyncTests.waitForCondition(() -> !sensor1.hasMoreData() && !sensor2.hasMoreData(), TIMEOUT);
         var end = Instant.now();
         Thread.sleep((long)(provider1.liveDataTimeout*1000));
         Thread.sleep(CAPS_REFRESH_PERIOD);
