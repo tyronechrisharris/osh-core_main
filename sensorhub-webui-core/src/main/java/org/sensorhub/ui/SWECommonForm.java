@@ -168,8 +168,12 @@ public class SWECommonForm extends VerticalLayout
             
             if (showValues && dataComponent.hasData())
             {
+                var str = sweUtils.getStringValue((DataValue)dataComponent);
+                if ("NaN".equals(str) || "null".equals(str))
+                    str = "n/a";
+                
                 caption.append(" = ");
-                caption.append(sweUtils.getStringValue((DataValue)dataComponent));
+                caption.append(str);
                 caption.append(' ');
                 if (uom != null)
                     caption.append(uom);
