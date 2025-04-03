@@ -15,14 +15,16 @@ package org.sensorhub.impl.comm;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.SubmissionPublisher;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.Flow.Subscription;
 import org.sensorhub.api.comm.IMessageQueuePush;
 import org.sensorhub.api.comm.MessageQueueConfig;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.event.Event;
-import org.sensorhub.impl.event.ListenerSubscriber;
+import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.impl.module.AbstractSubModule;
+import org.vast.util.Asserts;
 
 
 /**
@@ -35,14 +37,26 @@ import org.sensorhub.impl.module.AbstractSubModule;
  */
 public class LocalMessageQueue extends AbstractSubModule<MessageQueueConfig> implements IMessageQueuePush<MessageQueueConfig>
 {
-    SubmissionPublisher<Message> queue;
-    Map<MessageListener, ListenerSubscriber> listeners = new ConcurrentHashMap<>();
+    Set<MessageListener> listeners = new CopyOnWriteArraySet<>();
+    IEventPublisher publisher;
+    Subscription sub;
     
     
-    class Message extends Event
+    public static class LocalMqMessage extends Event
     {
         Map<String, String> attrs;
         byte[] payload;
+        
+        public LocalMqMessage(byte[] payload)
+        {
+            this.payload = payload;
+        }
+        
+        public LocalMqMessage(Map<String, String> attrs, byte[] payload)
+        {
+            this.attrs = attrs;
+            this.payload = payload;
+        }
         
         @Override
         public String getSourceID()
@@ -58,6 +72,12 @@ public class LocalMessageQueue extends AbstractSubModule<MessageQueueConfig> imp
         {
             this.moduleClass = LocalMessageQueue.class.getCanonicalName();
         }
+        
+        public LocalMessageQueueConfig(String topicName)
+        {
+            this();
+            this.topicName = Asserts.checkNotNullOrBlank(topicName, "topicName");
+        }
     }
     
     
@@ -65,65 +85,88 @@ public class LocalMessageQueue extends AbstractSubModule<MessageQueueConfig> imp
     public void init(final MessageQueueConfig config) throws SensorHubException
     {
         super.init(config);
-        queue = new SubmissionPublisher<>();
     }
 
 
     @Override
     public void publish(byte[] payload)
     {
-        var msg = new Message();
-        msg.payload = payload;
-        queue.submit(msg);
+        publish(null, payload);
     }
 
 
     @Override
     public void publish(Map<String, String> attrs, byte[] payload)
     {
-        var msg = new Message();
-        msg.attrs = attrs;
-        msg.payload = payload;
-        queue.submit(msg);
+        var msg = new LocalMqMessage(attrs, payload);
+        
+        if (publisher != null)
+            publisher.publish(msg);
+        else
+            publishToListeners(msg);
     }
 
 
     @Override
     public void registerListener(MessageListener listener)
     {
-        var sub = listeners.computeIfAbsent(listener, k -> {
-            return new ListenerSubscriber(e -> {
-                var attrs = ((Message)e).attrs;
-                if (attrs == null)
-                    attrs = Collections.emptyMap();
-                var payload = ((Message)e).payload;
-                listener.receive(attrs, payload);
-            });
-        });
-            
-        queue.subscribe(sub);
+        listeners.add(listener);
     }
 
 
     @Override
     public void unregisterListener(MessageListener listener)
     {
-        listeners.computeIfPresent(listener, (k,v) -> {
-            v.cancel();
-            return null;
-        });
+        listeners.remove(listener);
     }
 
 
     @Override
     public void start()
     {
+        if (config.topicName != null)
+        {
+            Asserts.checkNotNull(parentModule, "parentModule");
+            Asserts.checkNotNull(parentModule.getParentHub(), "parentHub");
+            Asserts.checkNotNull(parentModule.getParentHub().getEventBus(), "eventBus");
+            
+            try
+            {
+                var eventBus = parentModule.getParentHub().getEventBus();
+                this.publisher = eventBus.getPublisher(config.topicName);
+                            
+                this.sub = eventBus.newSubscription(LocalMqMessage.class)
+                    .withTopicID(config.topicName)
+                    .subscribe(e -> {
+                        publishToListeners(e);
+                        this.sub.request(1);
+                    }).get();
+                this.sub.request(1);
+            }
+            catch (Exception e)
+            {
+                parentModule.getLogger().error("Error connecting to event bus", e);
+            }
+        }
+    }
+    
+    
+    void publishToListeners(LocalMqMessage msg)
+    {
+        var attrs = ((LocalMqMessage)msg).attrs;
+        if (attrs == null)
+            attrs = Collections.emptyMap();
+        var payload = ((LocalMqMessage)msg).payload;
+        for (var l: listeners)
+            l.receive(attrs, payload);
     }
 
 
     @Override
     public void stop()
     {
+        if (this.sub != null)
+            this.sub.cancel();
     }
 
 }
