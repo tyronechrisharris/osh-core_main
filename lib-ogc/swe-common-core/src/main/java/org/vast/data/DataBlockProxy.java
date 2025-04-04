@@ -18,11 +18,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.AbstractCollection;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import org.vast.cdm.common.CDMException;
 import org.vast.cdm.common.DataStreamWriter;
@@ -160,12 +163,16 @@ public class DataBlockProxy implements IDataAccessor, InvocationHandler
                 return data.getTimeStamp();
             else if (retType == OffsetDateTime.class)
                 return data.getDateTime();
-            else if (IDataAccessor.class.isAssignableFrom(retType))
+            else if (Collection.class.isAssignableFrom(retType))
             {
                 assertDataArray(method, comp);
                 
-                @SuppressWarnings("unchecked")
-                var accessorClass = (Class<IDataAccessor>)retType;
+                var itemType = (Class<?>)((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[0];
+                if (!IDataAccessor.class.isAssignableFrom(itemType))
+                    throw new IllegalStateException("Collection item type must be an accessor class");
+                
+                @SuppressWarnings({"unchecked"})
+                var accessorClass = (Class<IDataAccessor>)itemType;
                 return createCollection(accessorClass, (DataArray)comp);
             }
             else
@@ -316,25 +323,44 @@ public class DataBlockProxy implements IDataAccessor, InvocationHandler
     
     protected Collection<IDataAccessor> createCollection(Class<IDataAccessor> clazz, DataArray array)
     {
-        var proxy = createElementProxy(clazz, array.getElementType());
-        
-        /*return new AbstractCollection<T>() {
+        return new AbstractCollection<IDataAccessor>() {
 
             @Override
-            public Iterator<T> iterator()
+            public Iterator<IDataAccessor> iterator()
             {
-                // TODO Auto-generated method stub
-                return null;
+                return new Iterator<IDataAccessor>()
+                {
+                    int idx;
+                    
+                    @Override
+                    public boolean hasNext()
+                    {
+                        return idx < array.getComponentCount();
+                    }
+
+                    @Override
+                    public IDataAccessor next()
+                    {
+                        var elt = array.getComponent(idx++);
+                        var accessor = createElementProxy(clazz, array.getElementType());
+                        accessor.wrap(elt.getData());
+                        return accessor;
+                    }
+                };
             }
 
             @Override
             public int size()
             {
-                // TODO Auto-generated method stub
-                return 0;
+                return array.getComponentCount();
             }
-        };*/
-        return null;
+            
+            @Override
+            public void clear()
+            {
+                
+            }
+        };
     }
     
     

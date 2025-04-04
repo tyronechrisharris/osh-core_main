@@ -57,6 +57,7 @@ public class OgcPropertyImpl<T extends Serializable> extends SimpleLink<T> imple
     }
     
     
+    @SuppressWarnings("unchecked")
     public void copyTo(OgcPropertyImpl<T> other)
     {        
         other.name = this.name;
