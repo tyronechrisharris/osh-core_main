@@ -65,7 +65,7 @@ public class EventBus implements IEventBus
         publishers = new HashMap<>();
         
         // create thread pool that will be used by all asynchronous event handlers
-        threadPool = new ThreadPoolExecutor(0, 100,
+        threadPool = new ThreadPoolExecutor(10, 100,
                                             10L, TimeUnit.SECONDS,
                                             new SynchronousQueue<Runnable>(),
                                             new NamedThreadFactory("EventBus"));
