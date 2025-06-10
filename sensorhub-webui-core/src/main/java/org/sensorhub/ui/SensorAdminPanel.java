@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.util.ResourceBundle;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.sensor.ISensorModule;
@@ -25,6 +26,7 @@ import com.vaadin.ui.Label;
 import com.vaadin.ui.Layout;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.server.VaadinSession;
 
 
 /**
@@ -40,12 +42,14 @@ import com.vaadin.ui.VerticalLayout;
 @SuppressWarnings("serial")
 public class SensorAdminPanel extends DataSourceAdminPanel<ISensorModule<?>>
 {
+    private transient ResourceBundle resourceBundle;
     VerticalLayout commandsSection;
     
     
     @Override
     public void build(final MyBeanItem<ModuleConfig> beanItem, final ISensorModule<?> module)
     {
+        this.resourceBundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
         super.build(beanItem, module);
 
         // command inputs
@@ -58,7 +62,7 @@ public class SensorAdminPanel extends DataSourceAdminPanel<ISensorModule<?>>
                 addComponent(new Spacing());
                 HorizontalLayout titleBar = new HorizontalLayout();
                 titleBar.setSpacing(true);
-                Label sectionLabel = new Label("Command Inputs");
+                Label sectionLabel = new Label(resourceBundle.getString("sensorAdminPanel.commandInputs"));
                 sectionLabel.addStyleName(STYLE_H3);
                 sectionLabel.addStyleName(STYLE_COLORED);
                 titleBar.addComponent(sectionLabel);

@@ -19,9 +19,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.net.URL;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.vast.xml.DOMHelper;
@@ -39,6 +41,7 @@ import com.vaadin.ui.Label;
 import com.vaadin.ui.Link;
 import com.vaadin.ui.ProgressBar;
 import com.vaadin.v7.ui.TreeTable;
+import com.vaadin.server.VaadinSession;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
@@ -63,10 +66,10 @@ public class DownloadModulesPopup extends Window
     private static final String BINTRAY_WEB_ROOT = "https://bintray.com/" + BINTRAY_SUBJECT + "/" + BINTRAY_REPO + "/";
     private static final String BINTRAY_CONTENT_ROOT = "https://dl.bintray.com/" + BINTRAY_SUBJECT + "/" + BINTRAY_REPO + "/";
     private static final String LINK_TARGET = "osh-bintray";
-    private static final String LOADING_MSG = "Loading...";
     
     TreeTable table;
     transient ExecutorService exec = Executors.newFixedThreadPool(2);
+    private transient ResourceBundle resourceBundle;
     
     
     static class BintrayArtifact
@@ -74,9 +77,9 @@ public class DownloadModulesPopup extends Window
         public String name;
         public String path;
         public String label;
-        public String desc = LOADING_MSG;
+        public String desc;
         public String version;
-        public String author = LOADING_MSG;
+        public String author;
     }
     
     
@@ -92,7 +95,9 @@ public class DownloadModulesPopup extends Window
     
     public DownloadModulesPopup()
     {
-        super("Download Add-on Modules");
+        super(); // Caption will be set after resourceBundle is initialized
+        this.resourceBundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
+        setCaption(resourceBundle.getString("downloadModulesPopup.title"));
         setModal(true);
                 
         final VerticalLayout layout = new VerticalLayout();
@@ -104,7 +109,7 @@ public class DownloadModulesPopup extends Window
         ProgressBar pb = new ProgressBar();
         pb.setIndeterminate(true);
         loading.addComponent(pb);
-        loading.addComponent(new Label("Loading Package Information..."));
+        loading.addComponent(new Label(resourceBundle.getString("downloadModulesPopup.loadingMessage")));
         layout.addComponent(loading);
         
         setContent(layout);
@@ -167,7 +172,7 @@ public class DownloadModulesPopup extends Window
                         @Override
                         public void run()
                         {
-                            DisplayUtils.showErrorPopup("Cannot fetch OSH package list", e);
+                            DisplayUtils.showErrorPopup(resourceBundle.getString("downloadModulesPopup.errorFetchPackages"), e);
                             DownloadModulesPopup.this.close();
                             ui.push();
                         }
@@ -196,7 +201,11 @@ public class DownloadModulesPopup extends Window
                     table.addContainerProperty(ModuleTypeSelectionPopup.PROP_VERSION, String.class, null);
                     table.addContainerProperty(ModuleTypeSelectionPopup.PROP_DESC, String.class, null);
                     table.addContainerProperty(ModuleTypeSelectionPopup.PROP_AUTHOR, String.class, null);
-                    table.setColumnHeaders(new String[] {"Package", "OSH Version", "Description", "Author"});
+                    String packageCol = resourceBundle.getString("downloadModulesPopup.packageColumn");
+                    String versionCol = resourceBundle.getString("downloadModulesPopup.oshVersionColumn");
+                    String descCol = resourceBundle.getString("downloadModulesPopup.descriptionColumn");
+                    String authorCol = resourceBundle.getString("downloadModulesPopup.authorColumn");
+                    table.setColumnHeaders(new String[] {packageCol, versionCol, descCol, authorCol});
                     table.setColumnWidth(ModuleTypeSelectionPopup.PROP_NAME, 300);
                     table.setColumnExpandRatio(ModuleTypeSelectionPopup.PROP_DESC, 10);
                     layout.addComponent(table, 0);
@@ -205,14 +214,14 @@ public class DownloadModulesPopup extends Window
                 // add package info
                 String href = BINTRAY_WEB_ROOT + pkg.name; 
                 Link link = new Link(pkg.name, new ExternalResource(href), LINK_TARGET, 0, 0, null);
-                Object parentId = table.addItem(new Object[] {link, null, pkg.desc, null}, null);
+                Object parentId = table.addItem(new Object[] {link, null, (pkg.desc != null ? pkg.desc : resourceBundle.getString("downloadModulesPopup.loadingMessage")), null}, null);
                 
                 // add artifacts to table
                 for (BintrayArtifact f: pkg.files)
                 {
                     href = BINTRAY_CONTENT_ROOT + f.path; 
                     link = new Link(f.name, new ExternalResource(href), "_self", 0, 0, null);
-                    Object id = table.addItem(new Object[] {link, f.version, f.desc, f.author}, f.name);
+                    Object id = table.addItem(new Object[] {link, f.version, (f.desc != null ? f.desc : resourceBundle.getString("downloadModulesPopup.loadingMessage")), (f.author != null ? f.author : resourceBundle.getString("downloadModulesPopup.loadingMessage"))}, f.name);
                     table.setParent(id, parentId);
                     table.setChildrenAllowed(id, false);
                 }
@@ -235,8 +244,8 @@ public class DownloadModulesPopup extends Window
                                 public void run()
                                 {
                                     Item item = table.getItem(f.name);
-                                    item.getItemProperty(ModuleTypeSelectionPopup.PROP_DESC).setValue(f.desc);
-                                    item.getItemProperty(ModuleTypeSelectionPopup.PROP_AUTHOR).setValue(f.author);
+                                    item.getItemProperty(ModuleTypeSelectionPopup.PROP_DESC).setValue(f.desc != null ? f.desc : resourceBundle.getString("downloadModulesPopup.loadingMessage"));
+                                    item.getItemProperty(ModuleTypeSelectionPopup.PROP_AUTHOR).setValue(f.author != null ? f.author : resourceBundle.getString("downloadModulesPopup.loadingMessage"));
                                     getUI().push();
                                 }
                             });                                                    
@@ -313,7 +322,7 @@ public class DownloadModulesPopup extends Window
         }
         catch (Exception e)
         {
-            ((AdminUI)UI.getCurrent()).getOshLogger().error("Cannot read POM at " + url, e);
+            ((AdminUI)UI.getCurrent()).getOshLogger().error(MessageFormat.format(resourceBundle.getString("downloadModulesPopup.errorReadPom"), url), e);
         }
     }
     

@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.text.MessageFormat;
+import java.util.ResourceBundle;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.AggregateProcess;
 import net.opengis.sensorml.v20.Link;
@@ -53,6 +55,7 @@ import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Layout;
 import com.vaadin.ui.Panel;
+import com.vaadin.server.VaadinSession;
 
 
 /**
@@ -68,6 +71,7 @@ import com.vaadin.ui.Panel;
 @SuppressWarnings("serial")
 public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
 {
+    private transient ResourceBundle resourceBundle;
     Panel inputCommandsPanel, paramCommandsPanel, processFlowPanel;
     ProcessFlowDiagram diagram;
     SMLProcessConfig config;
@@ -76,6 +80,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
     @Override
     public void build(final MyBeanItem<ModuleConfig> beanItem, final IProcessModule<?> module)
     {
+        this.resourceBundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
         super.build(beanItem, module);
         
         // inputs control section
@@ -85,7 +90,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
             addComponent(new Spacing());
             HorizontalLayout titleBar = new HorizontalLayout();
             titleBar.setSpacing(true);
-            Label sectionLabel = new Label("Process Inputs");
+            Label sectionLabel = new Label(resourceBundle.getString("processAdminPanel.processInputs"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             titleBar.addComponent(sectionLabel);
@@ -104,7 +109,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
             addComponent(new Spacing());
             HorizontalLayout titleBar = new HorizontalLayout();
             titleBar.setSpacing(true);
-            Label sectionLabel = new Label("Process Parameters");
+            Label sectionLabel = new Label(resourceBundle.getString("processAdminPanel.processParameters"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             titleBar.addComponent(sectionLabel);
@@ -160,7 +165,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
 
             // wrap all parameters into a single datarecord so we can submit them together
             DataRecordImpl params = new DataRecordImpl();
-            params.setName("Parameters");
+            params.setName(resourceBundle.getString("processAdminPanel.parametersRecordName"));
             for (DataComponent param: module.getParameterDescriptors().values())
                 params.addComponent(param.getName(), param);
             params.combineDataBlocks();
@@ -183,7 +188,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
         addComponent(buttonBar);        
         
         // add data source button
-        Button addDatasrcBtn = new Button("Datasource", ADD_ICON);
+        Button addDatasrcBtn = new Button(resourceBundle.getString("processAdminPanel.datasourceButton"), ADD_ICON);
         addDatasrcBtn.addStyleName(STYLE_SMALL);
         buttonBar.addComponent(addDatasrcBtn);        
         addDatasrcBtn.addClickListener(new ClickListener() {
@@ -208,7 +213,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
         });
         
         // add process button
-        Button addProcessBtn = new Button("Process", ADD_ICON);
+        Button addProcessBtn = new Button(resourceBundle.getString("processAdminPanel.processButton"), ADD_ICON);
         addProcessBtn.addStyleName(STYLE_SMALL);
         buttonBar.addComponent(addProcessBtn);
         addProcessBtn.addClickListener(new ClickListener() {
@@ -305,13 +310,13 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
         }
         catch (Exception e)
         {
-            throw new ProcessingException("Cannot create SensorML process chain", e);
+            throw new ProcessingException(resourceBundle.getString("processAdminPanel.errorCreateSmlChain"), e);
         }
         
         // save SensorML file
         String smlPath = config.getSensorMLPath();
         if (smlPath == null || !FileUtils.isSafeFilePath(smlPath))
-            throw new ProcessingException("Cannot save process chain: A valid SensorML file path must be provided");
+            throw new ProcessingException(resourceBundle.getString("processAdminPanel.errorSaveSmlChainNoPath"));
         
         try (OutputStream os = new BufferedOutputStream(new FileOutputStream(smlPath)))
         {
@@ -319,7 +324,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
         }
         catch (Exception e)
         {
-            throw new ProcessingException(String.format("Cannot write SensorML description at '%s'", smlPath), e);
+            throw new ProcessingException(MessageFormat.format(resourceBundle.getString("processAdminPanel.errorWriteSmlDescription"), smlPath), e);
         }        
     }
     

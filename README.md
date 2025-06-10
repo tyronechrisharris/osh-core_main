@@ -44,3 +44,55 @@ You can also find useful information in the [Javadocs](http://docs.opensensorhub
 Several sensor driver examples are also available in the source code to help you get started.
 
 Join our Discord to offer feedback!
+
+## Internationalization (i18n)
+
+This application supports multiple languages using Java's built-in `ResourceBundle` mechanism. The user interface text is dynamically updated based on the user's selected language preference.
+
+### How it Works
+
+- User interface strings are stored in properties files located in `sensorhub-webui-core/src/main/resources/org/sensorhub/ui/`.
+- The default language file is `messages.properties` (English).
+- Each supported language has its own properties file named `messages_xx.properties`, where `xx` is the two-letter ISO 639-1 language code (e.g., `messages_es.properties` for Spanish).
+- When the application starts, it loads the appropriate resource bundle based on the user's saved language preference or the default system locale.
+- UI components then fetch strings from this bundle using keys (e.g., `resourceBundle.getString("adminUI.title")`).
+- A language selector is available in the application header, allowing users to switch languages dynamically. The selected preference is saved for future sessions.
+
+### Adding a New Language
+
+To add support for a new language, follow these steps:
+
+1.  **Identify the ISO 639-1 Code:** Determine the two-letter code for the language you want to add (e.g., `pt` for Portuguese, `it` for Italian).
+2.  **Create a New Properties File:**
+    *   Navigate to the `sensorhub-webui-core/src/main/resources/org/sensorhub/ui/` directory.
+    *   Make a copy of the `messages.properties` file.
+    *   Rename the copied file to `messages_xx.properties`, replacing `xx` with the new language code (e.g., `messages_pt.properties`).
+3.  **Translate the Strings:**
+    *   Open the newly created `messages_xx.properties` file.
+    *   Translate all the string values (the text after the `=` sign) into the new language. Keep the keys (the text before the `=` sign) exactly the same as in `messages.properties`.
+    *   Example for `messages_pt.properties`:
+        ```properties
+        adminUI.title=OpenSensorHub [pt] # Replace with actual Portuguese translation
+        adminUI.sensorsTab=Sensores [pt] # Replace with actual Portuguese translation
+        # ... and so on for all other keys
+        ```
+4.  **Update Supported Locales (Code Change):**
+    *   Open the `AdminUI.java` file located in `sensorhub-webui-core/src/main/java/org/sensorhub/ui/`.
+    *   Locate the `buildHeader()` method.
+    *   Add the new `Locale` and its display name to the `supportedLocales` map. For example, for Portuguese:
+        ```java
+        supportedLocales.put(new Locale("pt"), "Português");
+        ```
+    *   Locate the `isSupportedLocale(Locale locale)` method in `AdminUI.java`.
+    *   Add the new language code to the checks. For example, for Portuguese:
+        ```java
+        return locale.getLanguage().equals(Locale.ENGLISH.getLanguage()) ||
+               locale.getLanguage().equals("es") ||
+               locale.getLanguage().equals(Locale.FRENCH.getLanguage()) ||
+               locale.getLanguage().equals(Locale.GERMAN.getLanguage()) ||
+               locale.getLanguage().equals("pt"); // Add new language here
+        ```
+    *   (Optional but recommended for robustness) If `AppSessionInitListener.java` is actively used and registered, update its `isSupported` method similarly and potentially the logic for adding the new locale to `event.getSession().setLocale(loadedLocale);` checks if you want fine-grained control over supported language tags there.
+5.  **Test:** Rebuild and run the application. Select the new language from the language selector and verify that all UI text is correctly translated.
+
+By following these steps, you can extend the application's internationalization capabilities.

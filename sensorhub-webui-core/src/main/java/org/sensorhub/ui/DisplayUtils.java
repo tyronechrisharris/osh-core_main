@@ -19,8 +19,10 @@ import java.io.StringWriter;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.utils.ModuleUtils;
 import com.vaadin.server.FontAwesome;
+import com.vaadin.server.VaadinSession;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.UI;
+import java.util.ResourceBundle;
 
 
 @SuppressWarnings("deprecation")
@@ -85,9 +87,9 @@ public class DisplayUtils
             ((AdminUI)UI.getCurrent()).getOshLogger().error(msg, e);
             msg += "<br/>" + e.getMessage();
         }
-        
+        ResourceBundle bundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
         new Notification(
-                "Error<br/>",
+                bundle.getString("displayUtils.errorTitle") + "<br/>",
                 msg,
                 Notification.Type.ERROR_MESSAGE, true)
                 .show(UI.getCurrent().getPage());
@@ -118,9 +120,9 @@ public class DisplayUtils
         
         e.printStackTrace(new PrintWriter(writer));
         String stackTrace = "<pre>" + writer.toString() + "</pre>";
-        
+        ResourceBundle bundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
         new Notification(
-                "Error<br/>",
+                bundle.getString("displayUtils.errorTitle") + "<br/>",
                 stackTrace,
                 Notification.Type.ERROR_MESSAGE, true)
                 .show(UI.getCurrent().getPage());
@@ -135,8 +137,9 @@ public class DisplayUtils
     
     private static String getDependencyErrorMessage(Class<?> clazz)
     {
+        ResourceBundle bundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
         StringBuilder msg = new StringBuilder();
-        msg.append("A class could not be found at runtime.\nPlease check that the following dependencies are installed:\n\n");
+        msg.append(bundle.getString("displayUtils.dependencyErrorMessage"));
         for (String dep: ModuleUtils.getBundleDependencies(clazz))
             msg.append(dep).append('\n');
         return msg.toString();
