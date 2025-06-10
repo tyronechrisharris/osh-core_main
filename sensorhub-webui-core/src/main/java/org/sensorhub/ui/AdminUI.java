@@ -373,6 +373,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         supportedLocales.put(new Locale("es"), "Español");
         supportedLocales.put(Locale.FRENCH, "Français");
         supportedLocales.put(Locale.GERMAN, "Deutsch");
+        supportedLocales.put(new Locale("ru"), "Русский");
 
         ComboBox<Locale> languageSelector = new ComboBox<>();
         languageSelector.setItems(supportedLocales.keySet());
@@ -1454,6 +1455,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         return locale.getLanguage().equals(Locale.ENGLISH.getLanguage()) ||
                locale.getLanguage().equals("es") ||
                locale.getLanguage().equals(Locale.FRENCH.getLanguage()) ||
-               locale.getLanguage().equals(Locale.GERMAN.getLanguage());
+               locale.getLanguage().equals(Locale.GERMAN.getLanguage()) ||
+               locale.getLanguage().equals("ru"); // Added Russian
     }
 }

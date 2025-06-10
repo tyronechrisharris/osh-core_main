@@ -53,6 +53,7 @@ public class AppSessionInitListener implements SessionInitListener {
         return locale.getLanguage().equals(Locale.ENGLISH.getLanguage()) ||
                locale.getLanguage().equals("es") ||
                locale.getLanguage().equals(Locale.FRENCH.getLanguage()) ||
-               locale.getLanguage().equals(Locale.GERMAN.getLanguage());
+               locale.getLanguage().equals(Locale.GERMAN.getLanguage()) ||
+               locale.getLanguage().equals("ru"); // Added Russian
     }
 }
