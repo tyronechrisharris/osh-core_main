@@ -14,8 +14,10 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ResourceBundle;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IObsSystemDatabaseModule;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -31,6 +33,7 @@ import com.vaadin.event.Action.Handler;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Page;
 import com.vaadin.server.ThemeResource;
+import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.MouseEventDetails.MouseButton;
 import com.vaadin.ui.Alignment;
 import com.vaadin.v7.ui.TreeTable;
@@ -53,8 +56,9 @@ import com.vaadin.ui.VerticalLayout;
 @SuppressWarnings({ "serial", "deprecation" })
 public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseModule<?>> implements IModuleAdminPanel<IObsSystemDatabaseModule<?>>
 {
-    private static final Action DELETE_SYSTEM_ACTION = new Action("Delete All System Data", new ThemeResource("icons/module_delete.png"));
-    private static final Action DELETE_OBS_ACTION = new Action("Delete System Observations", new ThemeResource("icons/module_delete.png"));
+    private transient ResourceBundle resourceBundle;
+    private Action DELETE_SYSTEM_ACTION;
+    private Action DELETE_OBS_ACTION;
     
     VerticalLayout layout;
     SystemSearchList systemTable;
@@ -65,6 +69,9 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
     public void build(final MyBeanItem<ModuleConfig> beanItem, final IObsSystemDatabaseModule<?> db)
     {
         super.build(beanItem, db);
+        this.resourceBundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
+        DELETE_SYSTEM_ACTION = new Action(resourceBundle.getString("databaseAdminPanel.deleteSystemDataAction"), new ThemeResource("icons/module_delete.png"));
+        DELETE_OBS_ACTION = new Action(resourceBundle.getString("databaseAdminPanel.deleteObsAction"), new ThemeResource("icons/module_delete.png"));
         
         // assign default database number if not set and module hasn't been initialized yet
         if (!db.isInitialized() && db.getConfiguration().databaseNum == null)
@@ -96,7 +103,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
             //layout.addComponent(new Label(""));
             HorizontalLayout titleBar = new HorizontalLayout();
             titleBar.setSpacing(true);
-            Label sectionLabel = new Label("Database Content");
+            Label sectionLabel = new Label(resourceBundle.getString("databaseAdminPanel.databaseContent"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             titleBar.addComponent(sectionLabel);
@@ -115,7 +122,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                     }
                     catch (Exception e)
                     {
-                        DisplayUtils.showErrorPopup("Unexpected error when selecting system", e);
+                        DisplayUtils.showErrorPopup(resourceBundle.getString("databaseAdminPanel.errorSelectSystem"), e);
                     }
                 }
             });
@@ -138,7 +145,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                     
                     if (action == DELETE_SYSTEM_ACTION)
                     {
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all data and metadata associated with system:<br/><b>" + uid + "?</b>");
+                        final ConfirmDialog popup = new ConfirmDialog(MessageFormat.format(resourceBundle.getString("databaseAdminPanel.confirmDeleteSystemMessage"), uid));
                         popup.addCloseListener(event -> {
                             if (popup.isConfirmed())
                             {
@@ -159,7 +166,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                     }
                     else if (action == DELETE_OBS_ACTION)
                     {
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all observations from system:<br/><b>" + uid + "?</b>");
+                        final ConfirmDialog popup = new ConfirmDialog(MessageFormat.format(resourceBundle.getString("databaseAdminPanel.confirmDeleteObsMessage"), uid));
                         popup.addCloseListener(event -> {
                             if (popup.isConfirmed())
                             {

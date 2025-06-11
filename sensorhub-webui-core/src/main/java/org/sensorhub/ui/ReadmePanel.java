@@ -16,42 +16,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.security.CodeSource;
+import java.util.ResourceBundle;
+import com.vaadin.server.VaadinSession;
 import org.sensorhub.ui.api.UIConstants.*;
 
 
 public class ReadmePanel extends VerticalLayout {
 
-    private static final String defaultReadmeHtml = "<p>A README file could not be found for this module.</p>\n" +
-            "<p>If this is a mistake, please be sure that...</p>\n" +
-            "<ul>\n" +
-            "<li>The module contains a file titled <code>README.md</code> within its build (build &gt; resources &gt; main &gt; README.md).</li>\n" +
-            "</ul>\n" +
-            "<p>OR</p>\n" +
-            "<ul>\n" +
-            "<li>The module contains a file titled <code>README.md</code> in its root directory.</li>\n" +
-            "<li><p>Your node&#39;s <code>build.gradle</code> file (the outermost one) includes the following:\n" +
-            "   </p>\n" +
-            "<pre><code><span class=\"hljs-keyword\">allprojects</span> {\n" +
-            "    version = oshCoreVersion\n" +
-            "    tasks.register(<span class=\"hljs-string\">'copyReadme'</span>, <span class=\"hljs-keyword\">Copy</span>) {\n" +
-            "        <span class=\"hljs-keyword\">from</span> <span class=\"hljs-string\">\"${projectDir}/README.md\"</span>\n" +
-            "        <span class=\"hljs-keyword\">into</span> <span class=\"hljs-string\">\"${buildDir}/resources/main\"</span>\n" +
-            "        onlyIf { <span class=\"hljs-keyword\">file</span>(<span class=\"hljs-string\">\"${projectDir}/README.md\"</span>).exists() }\n" +
-            "    }\n" +
-            "}\n" +
-            "\n" +
-            "<span class=\"hljs-keyword\">subprojects</span> {\n" +
-            "    <span class=\"hljs-comment\">// inject all repositories from included builds if any</span>\n" +
-            "    <span class=\"hljs-keyword\">repositories</span>.addAll(rootProject.<span class=\"hljs-keyword\">repositories</span>)\n" +
-            "    plugins.withType(JavaPlugin) {\n" +
-            "        processResources {\n" +
-            "            dependsOn copyReadme\n" +
-            "        }\n" +
-            "    }\n" +
-            "}\n" +
-            "</code></pre></li>\n" +
-            "</ul>";
-
+    private transient ResourceBundle resourceBundle;
     // This determines which tab is visible
     // Hack needed for desired accordion behavior in this older version of Vaadin
     private boolean visibleTab = false;
@@ -95,14 +67,14 @@ public class ReadmePanel extends VerticalLayout {
                 }
 
             } catch (Exception e) {
-                logger.error("Error reading readme file", e);
+                logger.error(ReadmePanel.this.resourceBundle.getString("readmePanel.errorReadingFile"), e);
             } finally {
                 try {
                     if (readmeIs != null) {
                         readmeIs.close();
                     }
                 } catch (IOException e) {
-                    logger.error("Error closing readme stream", e);
+                    logger.error(ReadmePanel.this.resourceBundle.getString("readmePanel.errorClosingStream"), e);
                 }
                 readmeIs = null;
             }
@@ -119,6 +91,7 @@ public class ReadmePanel extends VerticalLayout {
     }
 
     public ReadmePanel(final MyBeanItem<ModuleConfig> beanItem) {
+        this.resourceBundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
         ReadmeJS readmeJS = new ReadmeJS(beanItem);
         if (readmeJS.hasContent()) {
             // Use JS markdown parser if a readme exists
@@ -127,19 +100,19 @@ public class ReadmePanel extends VerticalLayout {
             // Otherwise, display instructions for adding a readme file
             var header = new HorizontalLayout();
             header.setSpacing(true);
-            Label title = new Label("No README");
+            Label title = new Label(resourceBundle.getString("readmePanel.noReadmeTitle"));
             title.addStyleName(UIConstants.STYLE_H2);
             header.addComponent(title);
             addComponent(header);
 
-            Button detailsBtn = new Button("Detailed Instructions");
+            Button detailsBtn = new Button(resourceBundle.getString("readmePanel.detailedInstructionsButton"));
             detailsBtn.setIcon(FontAwesome.CARET_RIGHT);
             //detailsBtn.setWidth(100.0f, Unit.PERCENTAGE);
 
             VerticalLayout instructions = new VerticalLayout();
             instructions.setMargin(true);
             instructions.setSpacing(true);
-            Label instructionsLabel = new Label(defaultReadmeHtml, ContentMode.HTML);
+            Label instructionsLabel = new Label(this.resourceBundle.getString("readmePanel.defaultReadmeHtml"), ContentMode.HTML);
             instructions.addComponent(instructionsLabel);
             instructions.setVisible(false);
             instructions.addStyleNames("v-csslayout-well", "v-scrollable");
