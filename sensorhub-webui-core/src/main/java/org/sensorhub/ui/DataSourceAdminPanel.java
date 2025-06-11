@@ -16,6 +16,7 @@ package org.sensorhub.ui;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.Timer;
 import java.util.TimerTask;
 import net.opengis.swe.v20.DataBlock;
@@ -40,6 +41,7 @@ import com.vaadin.ui.Panel;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.v7.ui.ListSelect;
+import com.vaadin.server.VaadinSession;
 
 
 /**
@@ -56,6 +58,7 @@ import com.vaadin.v7.ui.ListSelect;
 @SuppressWarnings("serial")
 public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> extends DefaultModulePanel<ModuleType> implements IModuleAdminPanel<ModuleType>
 {
+    private transient ResourceBundle resourceBundle;
     public static final int REFRESH_TIMEOUT = 3*AdminUIModule.HEARTBEAT_INTERVAL*1000;
     Panel obsPanel, statusPanel;
     Map<String, DataComponent> outputBuffers = new HashMap<>();
@@ -73,22 +76,23 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
     @Override
     public void build(final MyBeanItem<ModuleConfig> beanItem, final ModuleType module)
     {
-        super.build(beanItem, module);       
+        super.build(beanItem, module);
+        this.resourceBundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
         
         // sensor info panel
         if (module.isInitialized())
         {
-            Label sectionLabel = new Label("Data Source Info");
+            Label sectionLabel = new Label(resourceBundle.getString("dataSourceAdminPanel.dataSourceInfo"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             addComponent(sectionLabel);
-            addComponent(new Label("<b>Unique ID:</b> " + module.getUniqueIdentifier(), ContentMode.HTML));
+            addComponent(new Label("<b>" + resourceBundle.getString("dataSourceAdminPanel.uniqueId") + "</b> " + module.getUniqueIdentifier(), ContentMode.HTML));
             
             // display list of FOIs
             var fois = module.getCurrentFeaturesOfInterest().keySet();
             if (fois != null && !fois.isEmpty())
             {
-                addComponent(new Label("<b>FOI IDs:</b>", ContentMode.HTML)); 
+                addComponent(new Label("<b>" + resourceBundle.getString("dataSourceAdminPanel.foiIds") + "</b>", ContentMode.HTML));
                 ListSelect list = new ListSelect();
                 list.setRows(4);
                 list.setNullSelectionAllowed(false);
@@ -104,7 +108,7 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
                 addComponent(new Spacing());
                 HorizontalLayout titleBar = new HorizontalLayout();
                 titleBar.setSpacing(true);
-                sectionLabel = new Label("Outputs");
+                sectionLabel = new Label(resourceBundle.getString("dataSourceAdminPanel.outputs"));
                 sectionLabel.addStyleName(STYLE_H3);
                 sectionLabel.addStyleName(STYLE_COLORED);
                 titleBar.addComponent(sectionLabel);
@@ -112,8 +116,8 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
                 
                 // refresh button
                 final Timer timer = new Timer();
-                final Button refreshButton = new Button("Refresh");
-                refreshButton.setDescription("Toggle auto-refresh data once per second");
+                final Button refreshButton = new Button(resourceBundle.getString("dataSourceAdminPanel.refreshButton"));
+                refreshButton.setDescription(resourceBundle.getString("dataSourceAdminPanel.refreshButtonDescription"));
                 refreshButton.setIcon(REFRESH_ICON);
                 refreshButton.addStyleName(STYLE_SMALL);
                 refreshButton.addStyleName(STYLE_QUIET);
@@ -158,13 +162,13 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
                             };
                             timer.schedule(autoRefreshTask, 0L, 1000L);
                             refreshButton.setIcon(FontAwesome.TIMES);
-                            refreshButton.setCaption("Stop");
+                            refreshButton.setCaption(resourceBundle.getString("dataSourceAdminPanel.stopButton"));
                         }
                         else
                         {
                             autoRefreshTask.cancel();
                             refreshButton.setIcon(REFRESH_ICON);
-                            refreshButton.setCaption("Refresh");
+                            refreshButton.setCaption(resourceBundle.getString("dataSourceAdminPanel.refreshButton"));
                         }
                     }
                 });               
@@ -182,12 +186,12 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
         {
             if (module instanceof ISensorModule)
             {
-                obsPanel = newOutputsPanel("Observation Outputs", ((ISensorModule<?>) module).getObservationOutputs(), obsPanel);
-                statusPanel = newOutputsPanel("Status Outputs", ((ISensorModule<?>) module).getStatusOutputs(), statusPanel);
+                obsPanel = newOutputsPanel(resourceBundle.getString("dataSourceAdminPanel.observationOutputs"), ((ISensorModule<?>) module).getObservationOutputs(), obsPanel);
+                statusPanel = newOutputsPanel(resourceBundle.getString("dataSourceAdminPanel.statusOutputs"), ((ISensorModule<?>) module).getStatusOutputs(), statusPanel);
             }
             else
             {
-                obsPanel = newOutputsPanel("Outputs", module.getOutputs(), obsPanel);
+                obsPanel = newOutputsPanel(resourceBundle.getString("dataSourceAdminPanel.outputs"), module.getOutputs(), obsPanel);
             }
         }
     }

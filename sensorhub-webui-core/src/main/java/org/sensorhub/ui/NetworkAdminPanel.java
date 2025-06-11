@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.text.MessageFormat;
+import java.util.ResourceBundle;
 import java.util.Timer;
 import java.util.TimerTask;
 import org.sensorhub.api.comm.ICommNetwork;
@@ -31,7 +33,7 @@ import com.vaadin.ui.Notification;
 import com.vaadin.v7.ui.Table;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.UI;
-
+import com.vaadin.server.VaadinSession;
 
 /**
  * <p>
@@ -45,6 +47,7 @@ import com.vaadin.ui.UI;
 @SuppressWarnings("serial")
 public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> implements IModuleAdminPanel<ICommNetwork<?>>
 {
+    private transient ResourceBundle resourceBundle;
     private static final String PROP_NAME = "Name";
     private static final String PROP_TYPE = "Type";
     private static final String PROP_ADDRESS = "Address";
@@ -54,6 +57,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
     
     public static class NetworkScanPanel extends GridLayout
     {
+        private transient ResourceBundle resourceBundle;
         transient ICommNetwork<?> module;
         transient Timer stopTimer =  new Timer();
         transient TimerTask timerTask;
@@ -61,8 +65,9 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
         Table deviceTable;
         
         
-        public NetworkScanPanel(final ICommNetwork<?> module)
+        public NetworkScanPanel(final ICommNetwork<?> module, ResourceBundle resourceBundle)
         {
+            this.resourceBundle = resourceBundle;
             this.module = module;
             
             setWidth(100.0f, Unit.PERCENTAGE);
@@ -77,7 +82,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
         protected void addAvailableNetworks()
         {
             // section title
-            Label sectionLabel = new Label("Available Networks");
+            Label sectionLabel = new Label(resourceBundle.getString("networkAdminPanel.availableNetworks"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             addComponent(sectionLabel);
@@ -89,10 +94,10 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
             table.setSelectable(true);
             table.setImmediate(true);
             table.setColumnReorderingAllowed(false);
-            table.addContainerProperty("Network Type", String.class, null);
-            table.addContainerProperty("Interface Name", String.class, null);
-            table.addContainerProperty("Hardware Address", String.class, null);
-            table.addContainerProperty("Logical Address", String.class, null);
+            table.addContainerProperty(resourceBundle.getString("networkAdminPanel.networkTypeColumn"), String.class, null);
+            table.addContainerProperty(resourceBundle.getString("networkAdminPanel.interfaceNameColumn"), String.class, null);
+            table.addContainerProperty(resourceBundle.getString("networkAdminPanel.hardwareAddressColumn"), String.class, null);
+            table.addContainerProperty(resourceBundle.getString("networkAdminPanel.logicalAddressColumn"), String.class, null);
 
             int i = 0;
             for (INetworkInfo netInfo: module.getAvailableNetworks())
@@ -112,13 +117,13 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
         protected void addScannedDevicesTable()
         {
             // section title
-            Label sectionLabel = new Label("Detected Devices");
+            Label sectionLabel = new Label(resourceBundle.getString("networkAdminPanel.detectedDevices"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             addComponent(sectionLabel);
             
             // scan button
-            scanButton = new Button("Start Scan");
+            scanButton = new Button(resourceBundle.getString("networkAdminPanel.startScanButton"));
             scanButton.setIcon(REFRESH_ICON);
             scanButton.addStyleName("scan-button");
             scanButton.setEnabled(module.isStarted());
@@ -145,7 +150,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
                 {
                     if (!module.getDeviceScanner().isScanning())
                     {
-                        scanButton.setCaption("Stop Scan");
+                        scanButton.setCaption(resourceBundle.getString("networkAdminPanel.stopScanButton"));
                         deviceTable.removeAllItems();
                         
                         new Thread() {
@@ -188,7 +193,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
                                     @Override
                                     public void onScanError(final Throwable e)
                                     {
-                                        final String msg = "Error during device scan";
+                                        final String msg = resourceBundle.getString("networkAdminPanel.scanError");
                                         
                                         final UI ui = NetworkScanPanel.this.getUI();
                                         if (ui != null)
@@ -197,7 +202,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
                                                 @Override
                                                 public void run() {
                                                     
-                                                    new Notification("Error", msg + '\n' + e.getMessage(), Notification.Type.ERROR_MESSAGE).show(ui.getPage());
+                                                    new Notification(resourceBundle.getString("networkAdminPanel.scanErrorNotificationTitle"), msg + '\n' + e.getMessage(), Notification.Type.ERROR_MESSAGE).show(ui.getPage());
                                                 }
                                             });
                                         }              
@@ -240,7 +245,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
                 ui.access(new Runnable() {
                     @Override
                     public void run() {
-                        scanButton.setCaption("Start Scan");
+                        scanButton.setCaption(resourceBundle.getString("networkAdminPanel.startScanButton"));
                         ui.push();
                     }
                 });
@@ -273,10 +278,11 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
     @Override
     public void build(final MyBeanItem<ModuleConfig> beanItem, final ICommNetwork<?> module)
     {
-        super.build(beanItem, module);       
+        super.build(beanItem, module);
+        this.resourceBundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
         
         // add scan panel
-        NetworkScanPanel scanPanel = new NetworkScanPanel(module);
+        NetworkScanPanel scanPanel = new NetworkScanPanel(module, this.resourceBundle);
         scanPanel.setMargin(false);
         addComponent(scanPanel);
     }

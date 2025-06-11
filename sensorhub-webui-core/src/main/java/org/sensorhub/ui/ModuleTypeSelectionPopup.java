@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ResourceBundle;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfigBase;
 import org.sensorhub.impl.module.ModuleRegistry;
@@ -32,6 +33,7 @@ import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
+import com.vaadin.server.VaadinSession;
 
 
 /**
@@ -45,6 +47,7 @@ import com.vaadin.ui.Label;
 @SuppressWarnings({ "serial", "deprecation" })
 public class ModuleTypeSelectionPopup extends Window implements UIConstants
 {
+    private transient ResourceBundle resourceBundle;
     static final String PROP_NAME = "name";
     static final String PROP_VERSION = "version";
     static final String PROP_DESC = "desc";
@@ -65,7 +68,9 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
     
     public ModuleTypeSelectionPopup(final Class<?> moduleType, final ModuleTypeSelectionCallback callback)
     {
-        super("Select Module Type");
+        super(""); // Placeholder, real caption set after resourceBundle init
+        this.resourceBundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
+        setCaption(this.resourceBundle.getString("moduleTypeSelectionPopup.title"));
         
         ModuleRegistry registry = ((AdminUI)UI.getCurrent()).getParentHub().getModuleRegistry();
         Collection<IModuleProvider> providers = new ArrayList<>();
@@ -83,7 +88,9 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
     
     public ModuleTypeSelectionPopup(Collection<IModuleProvider> moduleProviders, final ModuleTypeSelectionCallback callback)
     {
-        super("Select Module Type");
+        super(""); // Placeholder, real caption set after resourceBundle init
+        this.resourceBundle = ResourceBundle.getBundle("org.sensorhub.ui.messages", VaadinSession.getCurrent().getLocale());
+        setCaption(this.resourceBundle.getString("moduleTypeSelectionPopup.title"));
         buildDialog(moduleProviders, callback);
     }
     
@@ -103,7 +110,11 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         table.addContainerProperty(PROP_VERSION, String.class, null);
         table.addContainerProperty(PROP_DESC, String.class, null);
         table.addContainerProperty(PROP_AUTHOR, String.class, null);
-        table.setColumnHeaders("Module Type", "Version", "Description", "Author");
+        String moduleTypeCol = resourceBundle.getString("moduleTypeSelectionPopup.moduleTypeColumn");
+        String versionCol = resourceBundle.getString("moduleTypeSelectionPopup.versionColumn");
+        String descCol = resourceBundle.getString("moduleTypeSelectionPopup.descriptionColumn");
+        String authorCol = resourceBundle.getString("moduleTypeSelectionPopup.authorColumn");
+        table.setColumnHeaders(new String[] {moduleTypeCol, versionCol, descCol, authorCol});
         table.setPageLength(10);
         table.setMultiSelect(false);
         
@@ -123,7 +134,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         var osgiCtx = ((AdminUI)UI.getCurrent()).getParentHub().getOsgiContext();
         if (osgiCtx != null)
         {
-            Button installNew = new Button("Install More Modules...");
+            Button installNew = new Button(resourceBundle.getString("moduleTypeSelectionPopup.installMoreModulesButton"));
             installNew.setStyleName(STYLE_LINK);
             installNew.addStyleName(UIConstants.STYLE_SMALL);
             layout.addComponent(installNew);
@@ -135,7 +146,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
                 {
                     var config = ((AdminUI)UI.getCurrent()).getParentModule().getConfiguration();
                     if (config.bundleRepoUrls == null || config.bundleRepoUrls.isEmpty())
-                        DisplayUtils.showErrorPopup("No bundle repository URL configured", null);
+                        DisplayUtils.showErrorPopup(resourceBundle.getString("moduleTypeSelectionPopup.noBundleRepoUrlConfigured"), null);
                     else
                         getUI().addWindow(new DownloadOsgiBundlesPopup(config.bundleRepoUrls, osgiCtx));
                     close();
@@ -151,7 +162,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         
         // OK button
         final ModuleRegistry registry = ((AdminUI)UI.getCurrent()).getParentHub().getModuleRegistry();
-        Button okButton = new Button("OK");
+        Button okButton = new Button(resourceBundle.getString("moduleTypeSelectionPopup.okButton"));
         okButton.addStyleName(UIConstants.STYLE_SMALL);
         okButton.addClickListener(new Button.ClickListener() {
             private static final long serialVersionUID = 1L;
@@ -186,7 +197,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
                 }
                 catch (Exception e)
                 {
-                    DisplayUtils.showErrorPopup("Cannot select module", e);
+                    DisplayUtils.showErrorPopup(resourceBundle.getString("moduleTypeSelectionPopup.errorSelectModule"), e);
                 }
             }
         });
@@ -196,7 +207,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         if (callback instanceof ModuleTypeSelectionWithClearCallback)
         {
             // add clear button
-            Button clearButton = new Button("Select None");
+            Button clearButton = new Button(resourceBundle.getString("moduleTypeSelectionPopup.selectNoneButton"));
             clearButton.addStyleName(UIConstants.STYLE_SMALL);
             clearButton.addClickListener(new Button.ClickListener() {
                 private static final long serialVersionUID = 1L;
